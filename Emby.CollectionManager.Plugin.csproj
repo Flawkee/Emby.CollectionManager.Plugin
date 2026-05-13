@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <LangVersion>latest</LangVersion>
+    <AssemblyName>Emby.CollectionManager.Plugin</AssemblyName>
+    <RootNamespace>CollectionManager.Plugin</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
+    <Version>1.0.0.1</Version>
+    <Authors>Collection Manager</Authors>
+    <GeneratedAssemblyInfoFile>assemblyinfo.cs</GeneratedAssemblyInfoFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MediaBrowser.Server.Core" Version="4.8.2" />
+    <PackageReference Include="System.Memory" Version="4.6.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="thumb.png" />
+    <None Remove="logos\streaming-services\**" />
+    <None Remove="logos\playlists\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="thumb.png" />
+    <EmbeddedResource Include="logos\streaming-services\**" />
+    <EmbeddedResource Include="logos\playlists\**" />
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="copy $(TargetPath) %AppData%\Emby-Server\programdata\plugins\" />
+  </Target>
+
+</Project>
