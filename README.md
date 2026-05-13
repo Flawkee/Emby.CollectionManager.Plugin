@@ -1,0 +1,1 @@
+# Emby.CollectionManager.Plugin
