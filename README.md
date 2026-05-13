@@ -19,7 +19,7 @@ Two detection modes:
 - **Without a key** — falls back to shared name-prefix matching (e.g. `Avatar` + `Avatar: The Way of Water` → `Avatar Franchise`).
 
 ### TV Universe Binge Playlists (per user, private)
-Creates a `<Universe> Universe` playlist for each user, grouping shows with franchise relationships scraped from [TVMaze](https://tvmaze.com) (e.g. _Game of Thrones Universe_ groups Game of Thrones + House of the Dragon + A Knight of the Seven Kingdoms).
+Creates a `<Universe> Universe` playlist for each user, grouping shows with franchise relationships sourced from the [TVMaze API](https://www.tvmaze.com/api) (e.g. _Game of Thrones Universe_ groups Game of Thrones + House of the Dragon + A Knight of the Seven Kingdoms).
 
 Only `Franchise / Prequel / Sequel / Spin-off / Companion Series` relationships are included — After Shows, talk shows, and reunion specials are excluded.
 
@@ -50,7 +50,7 @@ A scheduled task named **Collection Manager** runs every 24 hours and after any 
 
 1. **Dynamic User Playlists** — read each user's config, rebuild enabled playlists, delete disabled-or-removed ones.
 2. **Movie Franchises** — detect franchises (TMDB or name-prefix), build a private playlist per user who has opted in.
-3. **TV Universes** — detect universes via TVMaze, build a private playlist per user who has opted in.
+3. **TV Universes** — detect universes via the TVMaze API, build a private playlist per user who has opted in.
 4. **Streaming Service Collections** — scan studios and build shared collections with logos.
 
 Disabling any feature at the admin level removes the matching playlists / collections for every user on the next run.

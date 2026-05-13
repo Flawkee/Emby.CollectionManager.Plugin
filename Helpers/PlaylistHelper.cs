@@ -139,9 +139,9 @@ namespace CollectionManager.Plugin.Helpers
         }
 
         /// <summary>
-        /// Detects TV universes entirely via TVMaze: looks up each show by TVDB ID, scrapes the
-        /// /relations page for "Franchise"-type entries, and groups local library items accordingly.
-        /// Shows without TVDB IDs or with no franchise relations are left ungrouped.
+        /// Detects TV universes entirely via the TVMaze API: looks up each show by TVDB ID, reads
+        /// its franchise relations, and groups local library items accordingly. Shows without TVDB
+        /// IDs or with no franchise relations are left ungrouped.
         /// </summary>
         public Task<List<(string PlaylistName, long[] ItemIds)>> GetTvUniversesAsync(
             CancellationToken cancellationToken)
@@ -150,7 +150,7 @@ namespace CollectionManager.Plugin.Helpers
         // ──────────────────────────────────────────────────────────────────────
         // TVMaze spinoff detection
 
-        // Relationship types from the TVMaze /relations page that count as "same universe"
+        // Relationship types from TVMaze that count as "same universe"
         private static readonly HashSet<string> FranchiseRelTypes = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
             "Franchise", "Prequel", "Sequel", "Spin-off", "Spinoff", "Companion Series"
@@ -182,7 +182,7 @@ namespace CollectionManager.Plugin.Helpers
                 .ToArray();
 
             var coveredIds      = new HashSet<long>(); // shows already assigned to a universe
-            var processedTvMaze = new HashSet<int>();  // TVMaze show IDs already scraped
+            var processedTvMaze = new HashSet<int>();  // TVMaze show IDs already processed
             var groups          = new List<(string name, long[] ids)>();
 
             foreach (var series in sorted)
@@ -198,7 +198,7 @@ namespace CollectionManager.Plugin.Helpers
                 var (tvmazeId, slug) = tvmazeInfo.Value;
                 if (!processedTvMaze.Add(tvmazeId)) continue;
 
-                var relatedNames = await TvMazeScrapeRelationsAsync(tvmazeId, slug, cancellationToken)
+                var relatedNames = await TvMazeFetchRelationsAsync(tvmazeId, slug, cancellationToken)
                     .ConfigureAwait(false);
 
                 if (relatedNames.Count == 0) continue;
@@ -271,11 +271,11 @@ namespace CollectionManager.Plugin.Helpers
         }
 
         /// <summary>
-        /// Scrapes https://www.tvmaze.com/shows/{id}/{slug}/relations and returns the names of
-        /// shows whose relationship type is in <see cref="FranchiseRelTypes"/> (e.g. "Franchise").
+        /// Fetches franchise-related show names for a given TVMaze show ID via the TVMaze API,
+        /// keeping only relationships in <see cref="FranchiseRelTypes"/> (e.g. "Franchise").
         /// "After Show", "Talk Show", etc. are excluded — they are not binge-watch content.
         /// </summary>
-        private async Task<List<string>> TvMazeScrapeRelationsAsync(
+        private async Task<List<string>> TvMazeFetchRelationsAsync(
             int tvmazeId, string slug, CancellationToken cancellationToken)
         {
             var result = new List<string>();
