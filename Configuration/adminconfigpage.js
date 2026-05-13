@@ -6,7 +6,7 @@ define([
 ], function (loading) {
     'use strict';
 
-    var pluginUniqueId = '9D4F2A87-3E56-4C1B-A890-D7F3B2E15C6A';
+    var pluginUniqueId = '80FDA42F-C32A-4BAE-8757-4DD49EF331A0';
 
     return function (view) {
 
