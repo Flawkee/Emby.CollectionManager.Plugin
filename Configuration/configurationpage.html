@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Dynamic Playlists</title>
+</head>
+<body>
+    <div id="cmUserPlaylistsPage" data-role="page" class="page type-interior pluginConfigurationPage cmUserPlaylistsPage" data-controller="__plugin/cmuserplaylistsjs">
+        <div data-role="content">
+            <div class="content-primary">
+
+                <h1>Dynamic Playlists</h1>
+
+                <p>Define unlimited smart playlists. Each playlist is rebuilt automatically by the Collection Manager scheduled task based on the filters you configure here.</p>
+
+                <form id="cmPlaylistForm">
+
+                    <h2 style="margin-top:1em;">Binge Playlists</h2>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkEnableBingeFranchises" name="chkEnableBingeFranchises" />
+                            <span>Receive Movie Franchise binge playlists</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            When checked, the Collection Manager automatically creates binge-watch playlists for movie franchises (e.g. "The Hobbit Franchise") in your library. Uncheck to opt out — any existing "* Franchise" playlists you have will be removed on the next task run. The server administrator must also have this feature enabled.
+                        </div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkEnableBingeUniverses" name="chkEnableBingeUniverses" />
+                            <span>Receive TV Universe binge playlists</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            When checked, the Collection Manager automatically creates binge-watch playlists for TV universes and spin-offs (e.g. "Game of Thrones Universe"). Uncheck to opt out — any existing "* Universe" playlists will be removed on the next task run. The server administrator must also have this feature enabled.
+                        </div>
+                    </div>
+
+                    <h2 style="margin-top:1.5em;">Smart Playlists</h2>
+
+                    <div class="selectContainer">
+                        <select is="emby-select" id="selectPlaylist" name="selectPlaylist" label="Edit Playlist:"></select>
+                    </div>
+
+                    <div style="display:flex;gap:0.5em;margin-bottom:1em;flex-wrap:wrap;">
+                        <button is="emby-button" type="button" id="btnAddPlaylist" class="raised"><span>Add Playlist</span></button>
+                        <button is="emby-button" type="button" id="btnDeletePlaylist" class="raised"><span>Delete Selected</span></button>
+                    </div>
+
+                    <div id="playlistEditor" style="display:none;">
+
+                        <div class="inputContainer">
+                            <input is="emby-input" id="txtPlaylistName" name="txtPlaylistName" type="text" label="Playlist Name:" />
+                        </div>
+
+                        <div class="checkboxContainer checkboxContainer-withDescription">
+                            <label>
+                                <input is="emby-checkbox" type="checkbox" id="chkEnabled" name="chkEnabled" />
+                                <span>Enabled</span>
+                            </label>
+                            <div class="fieldDescription checkboxFieldDescription">
+                                When checked, the playlist is rebuilt by the scheduled task. When unchecked, any existing playlist with this name will be removed on the next run (the configuration is kept so you can re-enable it later).
+                            </div>
+                        </div>
+
+                        <div class="selectContainer">
+                            <select is="emby-select" id="selectContentType" name="selectContentType" label="Content Type:">
+                                <option value="Both">Movies and TV Shows</option>
+                                <option value="Movies">Movies only</option>
+                                <option value="TvShows">TV Shows only</option>
+                            </select>
+                        </div>
+
+                        <h3 class="checkboxListLabel">Genres</h3>
+                        <div id="divGenres" class="paperList checkboxList checkboxList-paperList"></div>
+                        <div class="fieldDescription">Leave all unchecked to include any genre.</div>
+                        <br />
+
+                        <h3 class="checkboxListLabel">Studios</h3>
+                        <div id="divStudios" class="paperList checkboxList checkboxList-paperList"></div>
+                        <div class="fieldDescription">Leave all unchecked to include any studio.</div>
+                        <br />
+
+                        <h3 class="checkboxListLabel">Years</h3>
+                        <div id="divYears" class="paperList checkboxList checkboxList-paperList"></div>
+                        <div class="fieldDescription">Leave all unchecked to include any year.</div>
+                        <br />
+
+                        <h3 class="checkboxListLabel">Parental Ratings</h3>
+                        <div id="divRatings" class="paperList checkboxList checkboxList-paperList"></div>
+                        <div class="fieldDescription">Leave all unchecked to include any rating.</div>
+                        <br />
+
+                        <h3 class="checkboxListLabel">Tags</h3>
+                        <div id="divTags" class="paperList checkboxList checkboxList-paperList"></div>
+                        <div class="fieldDescription">Leave all unchecked to include any tag.</div>
+                        <br />
+
+                        <div class="selectContainer">
+                            <select is="emby-select" id="selectPlayState" name="selectPlayState" label="Play State:">
+                                <option value="Any">Any</option>
+                                <option value="Played">Watched only</option>
+                                <option value="Unplayed">Unwatched only</option>
+                            </select>
+                        </div>
+
+                        <div class="selectContainer">
+                            <select is="emby-select" id="selectFavorite" name="selectFavorite" label="Favorites:">
+                                <option value="Any">Any</option>
+                                <option value="Yes">Favorites only</option>
+                                <option value="No">Non-favorites only</option>
+                            </select>
+                        </div>
+
+                        <div class="selectContainer">
+                            <select is="emby-select" id="selectSeriesStatus" name="selectSeriesStatus" label="Series Status (TV only):">
+                                <option value="Any">Any</option>
+                                <option value="Continuing">Continuing</option>
+                                <option value="Ended">Ended</option>
+                            </select>
+                        </div>
+
+                        <div class="inputContainer">
+                            <input is="emby-input" id="txtMaxItems" name="txtMaxItems" type="number" min="0" max="5000" label="Max Items:" />
+                            <div class="fieldDescription">0 = unlimited</div>
+                        </div>
+
+                    </div>
+
+                    <div>
+                        <button is="emby-button" type="submit" class="raised button-submit block"><span>Save</span></button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

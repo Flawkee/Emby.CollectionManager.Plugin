@@ -231,6 +231,41 @@ namespace CollectionManager.Plugin.Helpers
         }
 
         /// <summary>
+        /// Deletes every collection whose name matches one of the canonical streaming services managed
+        /// by this plugin (the keys of <see cref="LogoResourceMap"/>). Used when the feature is disabled
+        /// server-wide so the leftover collections don't clutter the library.
+        /// </summary>
+        public void RemoveAllStreamingServiceCollections()
+        {
+            var removed = 0;
+            foreach (var serviceName in LogoResourceMap.Keys)
+            {
+                var existing = _libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { "BoxSet" },
+                    Name             = serviceName,
+                    Recursive        = true
+                }).OfType<BoxSet>().FirstOrDefault();
+
+                if (existing == null) continue;
+
+                try
+                {
+                    _logger.Info($"[CollectionManager] Removing streaming service collection '{serviceName}' (InternalId={existing.InternalId})");
+                    _libraryManager.DeleteItem(existing, new DeleteOptions { DeleteFileLocation = true });
+                    removed++;
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn($"[CollectionManager] Failed to delete collection '{serviceName}': {ex.Message}");
+                }
+            }
+
+            if (removed > 0)
+                _logger.Info($"[CollectionManager] Removed {removed} streaming service collection(s)");
+        }
+
+        /// <summary>
         /// Writes every service logo to its metadata directory before any collection is created.
         /// This ensures the files are on disk when Emby's background metadata refresh runs,
         /// preventing PlaylistDynamicImageProvider from overriding them.

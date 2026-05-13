@@ -1,3 +1,4 @@
+using CollectionManager.Plugin.Configuration;
 using CollectionManager.Plugin.Helpers;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Tasks;
@@ -6,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using User = MediaBrowser.Controller.Entities.User;
 
 namespace CollectionManager.Plugin.ScheduledTasks
 {
@@ -58,6 +60,129 @@ namespace CollectionManager.Plugin.ScheduledTasks
 
                 progress.Report(0);
 
+                // Per-user binge prefs are cached for the duration of this run.
+                var dynamicHelper = DynamicPlaylistHelper.Instance;
+                var userCfgCache = new Dictionary<Guid, UserDynamicPlaylistsConfig>();
+                UserDynamicPlaylistsConfig GetUserCfg(User u)
+                {
+                    if (!userCfgCache.TryGetValue(u.Id, out var c))
+                    {
+                        c = dynamicHelper?.ReadUserConfig(u.Id) ?? new UserDynamicPlaylistsConfig();
+                        userCfgCache[u.Id] = c;
+                    }
+                    return c;
+                }
+
+                List<User> GetAllUsersOrEmpty()
+                {
+                    var um = Plugin.AppHost?.TryResolve<MediaBrowser.Controller.Library.IUserManager>();
+                    if (um == null) return new List<User>();
+#pragma warning disable CS0618
+                    return um.Users.ToList();
+#pragma warning restore CS0618
+                }
+
+                // ── Dynamic user playlists ─────────────────────────────────
+                if (config.EnableDynamicUserPlaylists && dynamicHelper != null)
+                {
+                    _logger.Info("[CollectionManager] Processing dynamic user playlists...");
+                    await dynamicHelper.BuildDynamicPlaylistsForAllUsersAsync(cancellationToken).ConfigureAwait(false);
+                }
+                else if (!config.EnableDynamicUserPlaylists)
+                {
+                    _logger.Info("[CollectionManager] Dynamic user playlists disabled server-wide — removing all dynamic playlists for all users");
+                    dynamicHelper?.RemoveAllDynamicPlaylistsForAllUsers();
+                }
+
+                progress.Report(15);
+
+                // ── Movie series playlists ─────────────────────────────────
+                if (playlistHelper != null)
+                {
+                    if (!config.EnableMovieSeriesPlaylists)
+                    {
+                        _logger.Info("[CollectionManager] Movie series playlists disabled server-wide — removing all '* Franchise' playlists");
+                        playlistHelper.RemoveAllPlaylistsWithSuffix("Franchise");
+                    }
+                    else
+                    {
+                        // Per-user opt-out cleanup
+                        foreach (var u in GetAllUsersOrEmpty())
+                        {
+                            if (!GetUserCfg(u).EnableBingeMovieFranchises)
+                                playlistHelper.RemovePlaylistsWithSuffixForUser(u, "Franchise");
+                        }
+
+                        _logger.Info("[CollectionManager] Processing movie series playlists...");
+                        var movieSeries = await playlistHelper.GetMovieSeriesAsync(config.TmdbApiKey, cancellationToken).ConfigureAwait(false);
+
+                        if (movieSeries.Count == 0)
+                        {
+                            _logger.Info("[CollectionManager] No movie series found");
+                        }
+                        else
+                        {
+                            _logger.Info($"[CollectionManager] Found {movieSeries.Count} movie series");
+                            for (int i = 0; i < movieSeries.Count; i++)
+                            {
+                                if (cancellationToken.IsCancellationRequested) break;
+
+                                var (name, ids) = movieSeries[i];
+                                _logger.Info($"[CollectionManager] Processing movie series playlist '{name}' — {ids.Length} movie(s)");
+                                await playlistHelper.EnsurePlaylistAsync(name, ids, cancellationToken,
+                                    u => GetUserCfg(u).EnableBingeMovieFranchises).ConfigureAwait(false);
+
+                                progress.Report(Math.Min(35, 15 + (i + 1) * 20.0 / movieSeries.Count));
+                            }
+                        }
+                    }
+                }
+
+                progress.Report(35);
+
+                // ── TV universe playlists ──────────────────────────────────
+                if (playlistHelper != null)
+                {
+                    if (!config.EnableTvUniversePlaylists)
+                    {
+                        _logger.Info("[CollectionManager] TV universe playlists disabled server-wide — removing all '* Universe' playlists");
+                        playlistHelper.RemoveAllPlaylistsWithSuffix("Universe");
+                    }
+                    else
+                    {
+                        foreach (var u in GetAllUsersOrEmpty())
+                        {
+                            if (!GetUserCfg(u).EnableBingeTvUniverses)
+                                playlistHelper.RemovePlaylistsWithSuffixForUser(u, "Universe");
+                        }
+
+                        _logger.Info("[CollectionManager] Processing TV universe playlists...");
+                        var tvUniverses = await playlistHelper.GetTvUniversesAsync(cancellationToken).ConfigureAwait(false);
+
+                        if (tvUniverses.Count == 0)
+                        {
+                            _logger.Info("[CollectionManager] No TV universes found");
+                        }
+                        else
+                        {
+                            _logger.Info($"[CollectionManager] Found {tvUniverses.Count} TV universe(s)");
+                            for (int i = 0; i < tvUniverses.Count; i++)
+                            {
+                                if (cancellationToken.IsCancellationRequested) break;
+
+                                var (name, ids) = tvUniverses[i];
+                                _logger.Info($"[CollectionManager] Processing TV universe playlist '{name}' — {ids.Length} series");
+                                await playlistHelper.EnsurePlaylistAsync(name, ids, cancellationToken,
+                                    u => GetUserCfg(u).EnableBingeTvUniverses).ConfigureAwait(false);
+
+                                progress.Report(Math.Min(55, 35 + (i + 1) * 20.0 / tvUniverses.Count));
+                            }
+                        }
+                    }
+                }
+
+                progress.Report(55);
+
                 // ── Streaming service collections ──────────────────────────
                 if (config.EnableStreamingServiceCollections)
                 {
@@ -65,7 +190,7 @@ namespace CollectionManager.Plugin.ScheduledTasks
 
                     _logger.Info("[CollectionManager] Pre-staging service logos...");
                     await helper.EnsureLogosPreStagedAsync(cancellationToken).ConfigureAwait(false);
-                    progress.Report(5);
+                    progress.Report(60);
 
                     var allItems = scanner.ScanLibrary(
                         includeMovies: config.IncludeMovies,
@@ -112,81 +237,18 @@ namespace CollectionManager.Plugin.ScheduledTasks
                                 _logger.Info($"[CollectionManager] Processing '{serviceName}' — {items.Count} item(s)");
                                 await helper.EnsureItemsInCollectionAsync(serviceName, internalIds).ConfigureAwait(false);
 
-                                progress.Report(Math.Min(40, 5 + (i + 1) * 35.0 / serviceList.Count));
+                                progress.Report(Math.Min(95, 60 + (i + 1) * 35.0 / serviceList.Count));
                             }
                         }
                     }
                 }
                 else
                 {
-                    _logger.Info("[CollectionManager] Streaming service collections are disabled — skipping");
+                    _logger.Info("[CollectionManager] Streaming service collections disabled server-wide — removing all managed streaming service collections");
+                    helper.RemoveAllStreamingServiceCollections();
                 }
 
-                progress.Report(40);
-
-                // ── Movie series playlists ─────────────────────────────────
-                if (config.EnableMovieSeriesPlaylists && playlistHelper != null)
-                {
-                    _logger.Info("[CollectionManager] Processing movie series playlists...");
-                    var movieSeries = await playlistHelper.GetMovieSeriesAsync(config.TmdbApiKey, cancellationToken).ConfigureAwait(false);
-
-                    if (movieSeries.Count == 0)
-                    {
-                        _logger.Info("[CollectionManager] No movie series found");
-                    }
-                    else
-                    {
-                        _logger.Info($"[CollectionManager] Found {movieSeries.Count} movie series");
-                        for (int i = 0; i < movieSeries.Count; i++)
-                        {
-                            if (cancellationToken.IsCancellationRequested) break;
-
-                            var (name, ids) = movieSeries[i];
-                            _logger.Info($"[CollectionManager] Processing movie series playlist '{name}' — {ids.Length} movie(s)");
-                            await playlistHelper.EnsurePlaylistAsync(name, ids, cancellationToken).ConfigureAwait(false);
-
-                            progress.Report(Math.Min(65, 40 + (i + 1) * 25.0 / movieSeries.Count));
-                        }
-                    }
-                }
-                else if (!config.EnableMovieSeriesPlaylists)
-                {
-                    _logger.Info("[CollectionManager] Movie series playlists are disabled — skipping");
-                }
-
-                progress.Report(65);
-
-                // ── TV universe playlists ──────────────────────────────────
-                if (config.EnableTvUniversePlaylists && playlistHelper != null)
-                {
-                    _logger.Info("[CollectionManager] Processing TV universe playlists...");
-                    var tvUniverses = await playlistHelper.GetTvUniversesAsync(cancellationToken).ConfigureAwait(false);
-
-                    if (tvUniverses.Count == 0)
-                    {
-                        _logger.Info("[CollectionManager] No TV universes found");
-                    }
-                    else
-                    {
-                        _logger.Info($"[CollectionManager] Found {tvUniverses.Count} TV universe(s)");
-                        for (int i = 0; i < tvUniverses.Count; i++)
-                        {
-                            if (cancellationToken.IsCancellationRequested) break;
-
-                            var (name, ids) = tvUniverses[i];
-                            _logger.Info($"[CollectionManager] Processing TV universe playlist '{name}' — {ids.Length} series");
-                            await playlistHelper.EnsurePlaylistAsync(name, ids, cancellationToken).ConfigureAwait(false);
-
-                            progress.Report(Math.Min(90, 65 + (i + 1) * 25.0 / tvUniverses.Count));
-                        }
-                    }
-                }
-                else if (!config.EnableTvUniversePlaylists)
-                {
-                    _logger.Info("[CollectionManager] TV universe playlists are disabled — skipping");
-                }
-
-                progress.Report(90);
+                progress.Report(95);
 
                 // ── Library images (always last) ───────────────────────────
                 if (config.UpdatePlaylistsLibraryImage && playlistHelper != null)

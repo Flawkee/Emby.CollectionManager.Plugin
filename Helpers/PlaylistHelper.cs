@@ -68,16 +68,6 @@ namespace CollectionManager.Plugin.Helpers
             return _playlistManager;
         }
 
-        private User? GetAdminUser()
-        {
-            if (_userManager == null)
-                _userManager = _appHost.TryResolve<IUserManager>();
-            if (_userManager == null) return null;
-#pragma warning disable CS0618
-            return _userManager.Users.FirstOrDefault(u => u.Policy?.IsAdministrator == true);
-#pragma warning restore CS0618
-        }
-
         // ──────────────────────────────────────────────────────────────────────
         // Scanning
 
@@ -140,8 +130,9 @@ namespace CollectionManager.Plugin.Helpers
                     .ThenBy(m => m.PremiereDate ?? DateTime.MinValue)
                     .ToArray();
 
-                result.Add((prefix, ordered.Select(m => m.InternalId).ToArray()));
-                DebugLog($"[CollectionManager/Playlists] Movie series: '{prefix}' ({ordered.Length} movies)");
+                var playlistName = prefix + " Franchise";
+                result.Add((playlistName, ordered.Select(m => m.InternalId).ToArray()));
+                DebugLog($"[CollectionManager/Playlists] Movie series: '{playlistName}' ({ordered.Length} movies)");
             }
 
             return result;
@@ -468,7 +459,7 @@ namespace CollectionManager.Plugin.Helpers
                     .ThenBy(m => m.PremiereDate ?? DateTime.MinValue)
                     .ToArray();
 
-                var playlistName = StripCollectionSuffix(kvp.Value.name);
+                var playlistName = StripCollectionSuffix(kvp.Value.name) + " Franchise";
                 result.Add((playlistName, ordered.Select(m => m.InternalId).ToArray()));
                 DebugLog($"[CollectionManager/TMDB] Franchise: '{playlistName}' ({ordered.Length} movies)");
             }
@@ -669,53 +660,141 @@ namespace CollectionManager.Plugin.Helpers
         // Playlist management
 
         /// <summary>
-        /// Creates the playlist if it does not exist; adds items if it does.
-        /// Items are expected to arrive pre-sorted in binge-watch order.
+        /// Creates a private copy of the playlist for every user that passes <paramref name="userPredicate"/>
+        /// (or every user when the predicate is null). Items are expected to arrive pre-sorted in binge-watch order.
         /// </summary>
-        public async Task EnsurePlaylistAsync(string playlistName, long[] itemIds, CancellationToken cancellationToken)
+        public async Task EnsurePlaylistAsync(string playlistName, long[] itemIds, CancellationToken cancellationToken, Func<User, bool>? userPredicate = null)
         {
             if (itemIds.Length == 0) return;
 
             var pm = GetPlaylistManager();
             if (pm == null) return;
 
-            var adminUser = GetAdminUser();
-            if (adminUser == null)
+            var users = GetAllUsers();
+            if (users.Count == 0)
             {
-                _logger.Warn("[CollectionManager/Playlists] No admin user found — cannot manage playlists");
+                _logger.Warn("[CollectionManager/Playlists] IUserManager not available or has no users — cannot manage playlists");
                 return;
             }
 
-            DebugLog($"[CollectionManager/Playlists] EnsurePlaylist '{playlistName}' itemCount={itemIds.Length} adminUser='{adminUser.Name}'");
+            DebugLog($"[CollectionManager/Playlists] EnsurePlaylist '{playlistName}' itemCount={itemIds.Length} userCount={users.Count}");
 
+            foreach (var user in users)
+            {
+                if (cancellationToken.IsCancellationRequested) return;
+                if (userPredicate != null && !userPredicate(user)) continue;
+                await EnsurePrivatePlaylistForUserAsync(pm, user, playlistName, itemIds).ConfigureAwait(false);
+            }
+        }
+
+        private List<User> GetAllUsers()
+        {
+            if (_userManager == null)
+                _userManager = _appHost.TryResolve<IUserManager>();
+            if (_userManager == null) return new List<User>();
+#pragma warning disable CS0618
+            return _userManager.Users.ToList();
+#pragma warning restore CS0618
+        }
+
+        /// <summary>
+        /// Deletes every playlist whose name ends in " {suffix}" (e.g. "Franchise" or "Universe")
+        /// across all users. Used when the feature is disabled server-wide.
+        /// </summary>
+        public void RemoveAllPlaylistsWithSuffix(string suffix)
+        {
+            var users = GetAllUsers();
+            var seen = new HashSet<long>();
+            var deleted = 0;
+
+            foreach (var user in users)
+            {
+                foreach (var item in FindPlaylistsWithSuffixForUser(user, suffix))
+                {
+                    if (!seen.Add(item.InternalId)) continue;
+                    if (TryDeletePlaylist(item, user.Name))
+                        deleted++;
+                }
+            }
+
+            if (deleted > 0)
+                _logger.Info($"[CollectionManager/Playlists] Removed {deleted} '* {suffix}' playlist(s)");
+        }
+
+        /// <summary>
+        /// Deletes every playlist whose name ends in " {suffix}" for a single user. Used when the
+        /// feature is server-enabled but the user has opted out.
+        /// </summary>
+        public void RemovePlaylistsWithSuffixForUser(User user, string suffix)
+        {
+            var deleted = 0;
+            foreach (var item in FindPlaylistsWithSuffixForUser(user, suffix))
+            {
+                if (TryDeletePlaylist(item, user.Name))
+                    deleted++;
+            }
+
+            if (deleted > 0)
+                _logger.Info($"[CollectionManager/Playlists] Removed {deleted} '* {suffix}' playlist(s) for user '{user.Name}'");
+        }
+
+        private IEnumerable<BaseItem> FindPlaylistsWithSuffixForUser(User user, string suffix)
+        {
+            var tail = " " + suffix;
+            return _libraryManager.GetItemList(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { "Playlist" },
+                User             = user,
+                Recursive        = true
+            }).Where(p => p.Name != null && p.Name.EndsWith(tail, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private bool TryDeletePlaylist(BaseItem item, string userName)
+        {
+            try
+            {
+                DebugLog($"[CollectionManager/Playlists] Removing '{item.Name}' for user '{userName}'");
+                _libraryManager.DeleteItem(item, new DeleteOptions { DeleteFileLocation = true });
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn($"[CollectionManager/Playlists] Failed to delete '{item.Name}' for '{userName}': {ex.Message}");
+                return false;
+            }
+        }
+
+        private async Task EnsurePrivatePlaylistForUserAsync(IPlaylistManager pm, User user, string playlistName, long[] itemIds)
+        {
             try
             {
                 var existing = _libraryManager.GetItemList(new InternalItemsQuery
                 {
                     IncludeItemTypes = new[] { "Playlist" },
-                    Name = playlistName,
-                    Recursive = true
+                    Name             = playlistName,
+                    User             = user,
+                    Recursive        = true
                 }).FirstOrDefault();
 
                 if (existing != null)
                 {
-                    DebugLog($"[CollectionManager/Playlists] Playlist '{playlistName}' exists (InternalId={existing.InternalId}) — deleting and recreating");
-                    _libraryManager.DeleteItem(existing, new DeleteOptions { DeleteFileLocation = false });
+                    DebugLog($"[CollectionManager/Playlists] '{playlistName}' for '{user.Name}' exists (InternalId={existing.InternalId}) — deleting and recreating");
+                    _libraryManager.DeleteItem(existing, new DeleteOptions { DeleteFileLocation = true });
                 }
 
-                _logger.Info($"[CollectionManager/Playlists] Creating playlist '{playlistName}' with {itemIds.Length} item(s)");
+                _logger.Info($"[CollectionManager/Playlists] Creating '{playlistName}' ({itemIds.Length} items) for user '{user.Name}'");
                 await pm.CreatePlaylist(new PlaylistCreationRequest
                 {
                     Name       = playlistName,
                     ItemIdList = itemIds,
-                    User       = adminUser,
-                    IsPublic   = true,
+                    User       = user,
+                    IsPublic   = false,
                     MediaType  = "Video"
                 }).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
-                _logger.Error($"[CollectionManager/Playlists] Error processing playlist '{playlistName}': {ex.Message}");
+                _logger.Error($"[CollectionManager/Playlists] Error processing '{playlistName}' for '{user.Name}': {ex.Message}");
                 DebugLog($"[CollectionManager/Playlists] Full exception:\n{ex}");
             }
         }

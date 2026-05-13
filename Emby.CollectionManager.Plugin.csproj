@@ -21,12 +21,20 @@
     <None Remove="thumb.png" />
     <None Remove="logos\streaming-services\**" />
     <None Remove="logos\playlists\**" />
+    <None Remove="Configuration\configurationpage.html" />
+    <None Remove="Configuration\configurationpage.js" />
+    <None Remove="Configuration\adminconfigpage.html" />
+    <None Remove="Configuration\adminconfigpage.js" />
   </ItemGroup>
 
   <ItemGroup>
     <EmbeddedResource Include="thumb.png" />
     <EmbeddedResource Include="logos\streaming-services\**" />
     <EmbeddedResource Include="logos\playlists\**" />
+    <EmbeddedResource Include="Configuration\configurationpage.html" />
+    <EmbeddedResource Include="Configuration\configurationpage.js" />
+    <EmbeddedResource Include="Configuration\adminconfigpage.html" />
+    <EmbeddedResource Include="Configuration\adminconfigpage.js" />
   </ItemGroup>
 
   <Target Name="PostBuild" AfterTargets="PostBuildEvent">

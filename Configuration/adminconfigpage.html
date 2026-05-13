@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Collection Manager</title>
+</head>
+<body>
+    <div id="cmAdminPage" data-role="page" class="page type-interior pluginConfigurationPage cmAdminPage" data-controller="__plugin/cmadminjs">
+        <div data-role="content">
+            <div class="content-primary">
+
+                <h1>Collection Manager</h1>
+
+                <p>
+                    Saving this page triggers an immediate run of the <b>Collection Manager</b> scheduled task.
+                    The task processes phases in this order: Dynamic User Playlists → Movie Franchises → TV Universes → Streaming Collections.
+                </p>
+                <p>
+                    Disabling a feature here turns it OFF for every user and removes any matching playlists they already have.
+                    When a feature is enabled here, each user can still opt out individually from their personal
+                    <b>Dynamic Playlists</b> page (top-right user menu → Dynamic Playlists).
+                </p>
+
+                <form id="cmAdminForm">
+
+                    <h2 style="margin-top:2em;">Dynamic Playlists</h2>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkEnableDynamic" name="chkEnableDynamic" />
+                            <span>Enable per-user smart playlists</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            When enabled, each user can define their own playlists from the user menu → Dynamic Playlists page,
+                            with filters for genre, studio, year, parental rating, tags, play state, favorites and series status.
+                            Playlists are rebuilt at every task run and after each user save.
+                            When disabled, the scheduled task removes every user's existing dynamic playlists.
+                            Binge playlists (Movie Franchises / TV Universes) are NOT affected — they have their own toggles below.
+                        </div>
+                    </div>
+
+                    <h2 style="margin-top:2em;">Movie Franchises</h2>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkEnableFranchises" name="chkEnableFranchises" />
+                            <span>Create movie franchise binge playlists</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            When enabled, the task creates a private "&lt;Franchise&gt; Franchise" playlist for each user
+                            (e.g. "The Hobbit Franchise", "Pirates of the Caribbean Franchise"). Each user can opt out from
+                            their Dynamic Playlists page. When disabled, every "* Franchise" playlist is removed for every
+                            user on the next task run.
+                        </div>
+                    </div>
+                    <div class="inputContainer">
+                        <input is="emby-input" id="txtTmdbApiKey" name="txtTmdbApiKey" type="password" label="TMDB API Key (optional):" />
+                        <div class="fieldDescription">
+                            When provided, franchises are detected via The Movie Database collection data — the most accurate grouping
+                            (e.g. Lord of the Rings, Avatar, Mission: Impossible). Without a key, movies are grouped by shared name prefix
+                            (e.g. "Avatar" + "Avatar: The Way of Water" → "Avatar Franchise"). Get a free v3 key at
+                            <a href="https://themoviedb.org" target="_blank">themoviedb.org</a> → Settings → API → Request an API Key → Developer.
+                        </div>
+                    </div>
+
+                    <h2 style="margin-top:2em;">TV Universes</h2>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkEnableUniverses" name="chkEnableUniverses" />
+                            <span>Create TV universe binge playlists</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            When enabled, the task creates a private "&lt;Universe&gt; Universe" playlist for each user grouping TV shows
+                            with franchise relationships from TVMaze (e.g. "Game of Thrones Universe", "Breaking Bad Universe").
+                            Only Franchise / Prequel / Sequel / Spin-off / Companion Series relationships are included — After Shows
+                            and talk shows are excluded. Each user can opt out from their Dynamic Playlists page. When disabled, every
+                            "* Universe" playlist is removed for every user on the next task run.
+                        </div>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkUpdatePlaylistsImage" name="chkUpdatePlaylistsImage" />
+                            <span>Update Playlists library image</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Sets a custom poster on the Playlists library entry so it stands out in Home. Disable to manage that image manually.
+                        </div>
+                    </div>
+
+                    <h2 style="margin-top:2em;">Streaming Collections</h2>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkEnableStreaming" name="chkEnableStreaming" />
+                            <span>Create streaming service collections</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            When enabled, the task creates a public collection per streaming service detected in your library's studio
+                            metadata (Netflix, Amazon Prime Video, Disney+, Hulu, HBO Max, Apple TV+, Paramount+, MGM+, YouTube TV,
+                            Sling TV, Discovery+, ESPN+). Items are grouped by the streaming service name on their studio field.
+                            Collections are shared across users (not per-user). When disabled, every collection whose name matches one of
+                            the managed streaming services is removed on the next task run.
+                        </div>
+                    </div>
+                    <div class="checkboxContainer">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkIncludeMovies" name="chkIncludeMovies" />
+                            <span>Include movies</span>
+                        </label>
+                    </div>
+                    <div class="checkboxContainer">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkIncludeTvShows" name="chkIncludeTvShows" />
+                            <span>Include TV shows</span>
+                        </label>
+                    </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkUpdateCollectionsImage" name="chkUpdateCollectionsImage" />
+                            <span>Update Collections library image</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Sets a custom poster on the Collections library entry. Disable to manage it manually.
+                        </div>
+                    </div>
+
+                    <h2 style="margin-top:2em;">Diagnostics</h2>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkDebugLogging" name="chkDebugLogging" />
+                            <span>Enable debug logging</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Writes verbose step-by-step logs for every operation. Useful when a playlist or collection isn't being
+                            created the way you expect. Disable once the issue is resolved to keep logs clean.
+                        </div>
+                    </div>
+
+                    <div style="margin-top:2em;">
+                        <button is="emby-button" type="submit" class="raised button-submit block"><span>Save</span></button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
