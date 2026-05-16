@@ -4,12 +4,8 @@ An [Emby](https://emby.media/) plugin that automatically curates collections and
 
 ## Features
 
-### Streaming Service Collections (shared)
-Detects movies and shows from major streaming services in your library's `studio` metadata and groups them into named collections with native logos.
-
-Supported services: Netflix, Amazon Prime Video, Disney+, Hulu, HBO Max, Apple TV+, Paramount+, MGM+, YouTube TV, Sling TV, Discovery+, ESPN+.
-
-Item with multiple studios (e.g. an HBO Max original distributed through Netflix) appears in every matching collection.
+### Major Studios Collections (shared)
+Detects movies and shows from major studios in your library's `studio` metadata and groups them into named collections with native logos.
 
 ### Movie Franchise Binge Playlists (per user, private)
 Creates a `<Franchise> Franchise` playlist for each user with all movies in a franchise, sorted in release order (e.g. _The Hobbit Franchise_, _Pirates of the Caribbean Franchise_).
@@ -38,6 +34,9 @@ Playlists are rebuilt at every scheduled-task run and immediately after each use
 From the same page each user can also opt out of receiving the binge (Franchise / Universe) playlists.
 
 ## Installation
+
+
+Recommended: Install through Emby Plugin Catalog OR
 
 1. Build the project (see below) or download the latest `Emby.CollectionManager.Plugin.dll`.
 2. Drop the DLL into `<Emby programdata>/plugins/`.
