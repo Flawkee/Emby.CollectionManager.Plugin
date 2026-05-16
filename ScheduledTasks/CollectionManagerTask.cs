@@ -135,6 +135,10 @@ namespace CollectionManager.Plugin.ScheduledTasks
                                 progress.Report(Math.Min(35, 15 + (i + 1) * 20.0 / movieSeries.Count));
                             }
                         }
+
+                        // Remove playlists for franchises whose media no longer exists.
+                        var validFranchiseNames = movieSeries.Select(s => s.Item1).ToList();
+                        playlistHelper.RemoveStalePlaylistsWithSuffix("Franchise", validFranchiseNames);
                     }
                 }
 
@@ -178,6 +182,10 @@ namespace CollectionManager.Plugin.ScheduledTasks
                                 progress.Report(Math.Min(55, 35 + (i + 1) * 20.0 / tvUniverses.Count));
                             }
                         }
+
+                        // Remove playlists for universes whose media no longer exists.
+                        var validUniverseNames = tvUniverses.Select(s => s.Item1).ToList();
+                        playlistHelper.RemoveStalePlaylistsWithSuffix("Universe", validUniverseNames);
                     }
                 }
 

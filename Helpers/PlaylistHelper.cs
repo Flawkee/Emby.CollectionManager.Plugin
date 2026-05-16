@@ -722,6 +722,33 @@ namespace CollectionManager.Plugin.Helpers
         }
 
         /// <summary>
+        /// Deletes every playlist whose name ends in " {suffix}" but whose exact name is NOT in
+        /// <paramref name="validNames"/>. Used after a media-detection pass to purge playlists
+        /// whose underlying media no longer exists or no longer qualifies.
+        /// </summary>
+        public void RemoveStalePlaylistsWithSuffix(string suffix, IReadOnlyCollection<string> validNames)
+        {
+            var valid  = new HashSet<string>(validNames, StringComparer.OrdinalIgnoreCase);
+            var users  = GetAllUsers();
+            var seen   = new HashSet<long>();
+            var deleted = 0;
+
+            foreach (var user in users)
+            {
+                foreach (var item in FindPlaylistsWithSuffixForUser(user, suffix))
+                {
+                    if (!seen.Add(item.InternalId)) continue;
+                    if (item.Name != null && valid.Contains(item.Name)) continue;
+                    if (TryDeletePlaylist(item, user.Name))
+                        deleted++;
+                }
+            }
+
+            if (deleted > 0)
+                _logger.Info($"[CollectionManager/Playlists] Removed {deleted} stale '* {suffix}' playlist(s) whose media no longer qualifies");
+        }
+
+        /// <summary>
         /// Deletes every playlist whose name ends in " {suffix}" for a single user. Used when the
         /// feature is server-enabled but the user has opted out.
         /// </summary>
