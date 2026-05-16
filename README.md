@@ -49,8 +49,8 @@ From the same page each user can also opt out of receiving the binge (Franchise 
 A scheduled task named **Collection Manager** runs every 24 hours and after any save to the admin or user configuration. Phase order:
 
 1. **Dynamic User Playlists** — read each user's config, rebuild enabled playlists, delete disabled-or-removed ones.
-2. **Movie Franchises** — detect franchises (TMDB or name-prefix), build a private playlist per user who has opted in.
-3. **TV Universes** — detect universes via the TVMaze API, build a private playlist per user who has opted in.
+2. **Movie Franchises** — detect franchises (TMDB or name-prefix), build a private playlist per user who has opted in; remove stale franchise playlists for media that no longer exists.
+3. **TV Universes** — detect universes via the TVMaze API, build a private playlist per user who has opted in; remove stale universe playlists for media that no longer exists.
 4. **Streaming Service Collections** — scan studios and build shared collections with logos.
 
 Disabling any feature at the admin level removes the matching playlists / collections for every user on the next run.
@@ -70,6 +70,8 @@ Saving triggers an immediate task run.
 
 ### Per-user (Dynamic Playlists page)
 _User menu (top-right) → Dynamic Playlists_
+
+> **Browser only** — Due to an Emby limitation, the Dynamic Playlists page is only accessible from a **web browser** (desktop or mobile). It is not available through the Emby apps.
 
 - Receive Movie Franchise binge playlists (toggle)
 - Receive TV Universe binge playlists (toggle)
