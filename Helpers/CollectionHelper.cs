@@ -11,6 +11,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -49,10 +50,22 @@ namespace CollectionManager.Plugin.Helpers
             // Hulu
             ("Hulu",                  "Hulu"),
 
-            // HBO Max — absorbs legacy "HBO" and "Max" labels
+            // HBO Max / Max — exact service labels plus common Emby studio values for Max originals.
+            // Avoid broad Warner Bros. aliases here; those studios are not necessarily Max titles.
             ("HBO Max",               "HBO Max"),
-            ("HBO",                   "HBO Max"),
+            ("HBO Max Original",      "HBO Max"),
+            ("HBO Max Originals",     "HBO Max"),
             ("Max",                   "HBO Max"),
+            ("Max Original",          "HBO Max"),
+            ("Max Originals",         "HBO Max"),
+            ("HBO",                   "HBO Max"),
+            ("Home Box Office",       "HBO Max"),
+            ("Home Box Office (HBO)", "HBO Max"),
+            ("HBO Original Programming", "HBO Max"),
+            ("HBO Entertainment",     "HBO Max"),
+            ("HBO Films",             "HBO Max"),
+            ("HBO Documentary Films", "HBO Max"),
+            ("WarnerMedia Direct",    "HBO Max"),
 
             // Apple TV+
             ("Apple TV Plus",         "Apple TV+"),
@@ -156,9 +169,12 @@ namespace CollectionManager.Plugin.Helpers
             var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (var studio in studios)
             {
+                var normalizedStudio = NormalizeStudioName(studio);
+                if (normalizedStudio.Length == 0) continue;
+
                 foreach (var (key, name) in ServiceMap)
                 {
-                    if (studio.Equals(key, StringComparison.OrdinalIgnoreCase))
+                    if (normalizedStudio == NormalizeStudioName(key))
                     {
                         matched.Add(name);
                         break;
@@ -166,6 +182,29 @@ namespace CollectionManager.Plugin.Helpers
                 }
             }
             return [.. matched];
+        }
+
+        private static string NormalizeStudioName(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value)) return string.Empty;
+
+            var builder = new StringBuilder(value.Length);
+            var previousWasSpace = true;
+            foreach (var c in value)
+            {
+                if (char.IsLetterOrDigit(c))
+                {
+                    builder.Append(char.ToLowerInvariant(c));
+                    previousWasSpace = false;
+                }
+                else if (!previousWasSpace)
+                {
+                    builder.Append(' ');
+                    previousWasSpace = true;
+                }
+            }
+
+            return builder.ToString().Trim();
         }
 
         /// <summary>
