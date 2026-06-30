@@ -9,6 +9,7 @@ namespace CollectionManager.Plugin.Configuration
         public string ContentType { get; set; } = "Both"; // Movies | TvShows | Both
 
         // Multi-value filters (values are names, e.g. genre names, studio names)
+        public string[] SourceLibraryIds { get; set; } = System.Array.Empty<string>();
         public string[] IncludedGenres { get; set; } = System.Array.Empty<string>();
         public string[] IncludedStudios { get; set; } = System.Array.Empty<string>();
         public string[] IncludedYears { get; set; } = System.Array.Empty<string>();

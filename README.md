@@ -23,6 +23,7 @@ Only `Franchise / Prequel / Sequel / Spin-off / Companion Series` relationships 
 Each user gets a **Dynamic Playlists** entry in their user menu (top-right) where they can define unlimited smart playlists with these filters:
 
 - Content type (Movies / TV Shows / Both)
+- Source libraries (leave empty for all libraries)
 - Genres, Studios, Years, Parental Ratings, Tags (multi-select from your library)
 - Play state (Any / Watched / Unwatched)
 - Favorites (Any / Favorites only / Non-favorites)
@@ -62,7 +63,7 @@ _Dashboard → Plugins → Collection Manager_
 - **Dynamic Playlists** — Enable per-user smart playlists.
 - **Movie Franchises** — Enable franchise binge playlists + TMDB API key.
 - **TV Universes** — Enable universe binge playlists + Playlists library image.
-- **Streaming Collections** — Enable streaming collections, include movies/TV, Collections library image.
+- **Streaming Collections** — Enable streaming collections, include movies/TV, restrict source libraries, Collections library image.
 - **Diagnostics** — Verbose debug logging.
 
 Saving triggers an immediate task run.

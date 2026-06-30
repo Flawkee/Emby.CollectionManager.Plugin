@@ -4,6 +4,7 @@ using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Querying;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace CollectionManager.Plugin.Helpers
 {
@@ -48,21 +49,64 @@ namespace CollectionManager.Plugin.Helpers
             public bool IsMovie { get; set; }
         }
 
-        public List<MediaItemInfo> ScanLibrary(bool includeMovies, bool includeTvShows)
+        public List<MediaItemInfo> ScanLibrary(bool includeMovies, bool includeTvShows, string[]? sourceLibraryIds = null)
         {
             var results = new List<MediaItemInfo>();
+            var topParentIds = ResolveSourceLibraryInternalIds(sourceLibraryIds);
+
+            if (topParentIds.Length > 0)
+                _logger.Info($"[CollectionManager] Limiting scan to {topParentIds.Length} selected source librar{(topParentIds.Length == 1 ? "y" : "ies")}");
 
             if (includeTvShows)
-                results.AddRange(ScanByType("Series", isMovie: false));
+                results.AddRange(ScanByType("Series", isMovie: false, topParentIds));
 
             if (includeMovies)
-                results.AddRange(ScanByType("Movie", isMovie: true));
+                results.AddRange(ScanByType("Movie", isMovie: true, topParentIds));
 
             _logger.Info($"[CollectionManager] Found {results.Count} item(s) with studio metadata");
             return results;
         }
 
-        private List<MediaItemInfo> ScanByType(string itemType, bool isMovie)
+        public long[] ResolveSourceLibraryInternalIds(string[]? sourceLibraryIds)
+        {
+            if (sourceLibraryIds == null || sourceLibraryIds.Length == 0)
+                return Array.Empty<long>();
+
+            var ids = new List<long>();
+            foreach (var raw in sourceLibraryIds.Where(x => !string.IsNullOrWhiteSpace(x)))
+            {
+                var id = raw.Trim();
+
+                if (long.TryParse(id, out var internalId))
+                {
+                    ids.Add(internalId);
+                    continue;
+                }
+
+                if (!Guid.TryParse(id, out var guid))
+                {
+                    _logger.Warn($"[CollectionManager] Ignoring invalid source library id '{id}'");
+                    continue;
+                }
+
+                try
+                {
+                    var item = _libraryManager.GetItemById(guid);
+                    if (item != null)
+                        ids.Add(item.InternalId);
+                    else
+                        _logger.Warn($"[CollectionManager] Source library '{id}' was not found");
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn($"[CollectionManager] Failed to resolve source library '{id}': {ex.Message}");
+                }
+            }
+
+            return ids.Distinct().ToArray();
+        }
+
+        private List<MediaItemInfo> ScanByType(string itemType, bool isMovie, long[] topParentIds)
         {
             var items = new List<MediaItemInfo>();
 
@@ -71,7 +115,8 @@ namespace CollectionManager.Plugin.Helpers
                 var query = new InternalItemsQuery
                 {
                     IncludeItemTypes = new[] { itemType },
-                    Recursive = true
+                    Recursive = true,
+                    TopParentIds = topParentIds.Length > 0 ? topParentIds : null
                 };
 
                 var results = _libraryManager.GetItemList(query);

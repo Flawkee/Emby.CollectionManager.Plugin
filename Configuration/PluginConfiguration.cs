@@ -1,4 +1,5 @@
 using MediaBrowser.Model.Plugins;
+using System;
 
 namespace CollectionManager.Plugin.Configuration
 {
@@ -19,6 +20,7 @@ namespace CollectionManager.Plugin.Configuration
         public bool EnableStreamingServiceCollections { get; set; } = true;
         public bool IncludeMovies { get; set; } = true;
         public bool IncludeTvShows { get; set; } = true;
+        public string[] StreamingLibraryIds { get; set; } = Array.Empty<string>();
         public bool UpdateCollectionsLibraryImage { get; set; } = true;
 
         // Diagnostics

@@ -283,6 +283,10 @@ namespace CollectionManager.Plugin.Helpers
                 Recursive        = true,
             };
 
+            var sourceLibraryIds = LibraryScanner.Instance?.ResolveSourceLibraryInternalIds(def.SourceLibraryIds) ?? Array.Empty<long>();
+            if (sourceLibraryIds.Length > 0)
+                query.TopParentIds = sourceLibraryIds;
+
             if (def.IncludedGenres?.Length > 0)
                 query.Genres = def.IncludedGenres;
 

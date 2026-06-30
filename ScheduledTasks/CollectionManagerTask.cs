@@ -202,7 +202,8 @@ namespace CollectionManager.Plugin.ScheduledTasks
 
                     var allItems = scanner.ScanLibrary(
                         includeMovies: config.IncludeMovies,
-                        includeTvShows: config.IncludeTvShows);
+                        includeTvShows: config.IncludeTvShows,
+                        sourceLibraryIds: config.StreamingLibraryIds);
 
                     if (allItems.Count == 0)
                     {

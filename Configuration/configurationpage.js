@@ -15,6 +15,7 @@ define([
             Enabled: true,
             Name: 'My Playlist',
             ContentType: 'Both',
+            SourceLibraryIds: [],
             IncludedGenres: [],
             IncludedStudios: [],
             IncludedYears: [],
@@ -36,11 +37,13 @@ define([
     function renderCheckboxList(container, items, selectedValues, name) {
         var selected = (selectedValues || []).reduce(function (acc, v) { acc[v] = true; return acc; }, {});
         var html = items.map(function (item) {
-            var checked = selected[item] ? ' checked="checked"' : '';
+            var value = item && item.Id ? item.Id : item;
+            var label = item && item.Name ? item.Name : item;
+            var checked = selected[value] ? ' checked="checked"' : '';
             return '<label class="emby-checkbox-label">'
-                + '<input is="emby-checkbox" type="checkbox" name="' + escAttr(name) + '" value="' + escAttr(item) + '"' + checked + ' />'
-                + '<span>' + escAttr(item) + '</span></label>';
-        }).join('');
+                + '<input is="emby-checkbox" type="checkbox" name="' + escAttr(name) + '" value="' + escAttr(value) + '"' + checked + ' />'
+                + '<span>' + escAttr(label) + '</span></label>';
+        }).join('') || '<div class="fieldDescription">No options found.</div>';
         container.innerHTML = html;
     }
 
@@ -55,7 +58,7 @@ define([
         var _userId = null;
         var _config = { Playlists: [] };
         var _currentIdx = -1;
-        var _libraryData = { genres: [], studios: [], years: [], ratings: [], tags: [] };
+        var _libraryData = { libraries: [], genres: [], studios: [], years: [], ratings: [], tags: [] };
 
         var form          = view.querySelector('#cmPlaylistForm');
         var chkFranchises = view.querySelector('#chkEnableBingeFranchises');
@@ -65,6 +68,7 @@ define([
         var btnDel        = view.querySelector('#btnDeletePlaylist');
         var editor        = view.querySelector('#playlistEditor');
 
+        var divLibraries = view.querySelector('#divSourceLibraries');
         var divGenres   = view.querySelector('#divGenres');
         var divStudios  = view.querySelector('#divStudios');
         var divYears    = view.querySelector('#divYears');
@@ -75,6 +79,14 @@ define([
 
         function loadLibraryData() {
             var common = { UserId: _userId, SortBy: 'SortName', SortOrder: 'Ascending', Recursive: true };
+
+            var pLibraries = ApiClient.getJSON(ApiClient.getUrl('Library/MediaFolders'))
+                .then(function (r) {
+                    _libraryData.libraries = (r.Items || []).map(function (i) {
+                        return { Id: i.Id, Name: i.Name || 'Unnamed Library' };
+                    }).filter(function (i) { return i.Id; });
+                })
+                .catch(function () {});
 
             var pGenres = ApiClient.getJSON(ApiClient.getUrl('Genres', common))
                 .then(function (r) { _libraryData.genres = (r.Items || []).map(function (i) { return i.Name; }); })
@@ -106,7 +118,7 @@ define([
                 _libraryData.ratings = Object.keys(rts).sort();
             }).catch(function () {});
 
-            return Promise.all([pGenres, pStudios, pTags, pYears, pRatings]);
+            return Promise.all([pLibraries, pGenres, pStudios, pTags, pYears, pRatings]);
         }
 
         // ── Config I/O ────────────────────────────────────────────────────────
@@ -179,6 +191,7 @@ define([
             form.elements.selectSeriesStatus.value  = pl.SeriesStatus || 'Any';
             form.elements.txtMaxItems.value         = (pl.MaxItems != null ? pl.MaxItems : 0);
 
+            renderCheckboxList(divLibraries, _libraryData.libraries, pl.SourceLibraryIds,        'library');
             renderCheckboxList(divGenres,  _libraryData.genres,  pl.IncludedGenres,          'genre');
             renderCheckboxList(divStudios, _libraryData.studios, pl.IncludedStudios,         'studio');
             renderCheckboxList(divYears,   _libraryData.years,   pl.IncludedYears,           'year');
@@ -196,6 +209,7 @@ define([
             pl.IsFavorite              = form.elements.selectFavorite.value;
             pl.SeriesStatus            = form.elements.selectSeriesStatus.value;
             pl.MaxItems                = parseInt(form.elements.txtMaxItems.value, 10) || 0;
+            pl.SourceLibraryIds        = readCheckboxList(divLibraries);
             pl.IncludedGenres          = readCheckboxList(divGenres);
             pl.IncludedStudios         = readCheckboxList(divStudios);
             pl.IncludedYears           = readCheckboxList(divYears);
