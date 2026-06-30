@@ -115,9 +115,11 @@ namespace CollectionManager.Plugin.Helpers
                 var query = new InternalItemsQuery
                 {
                     IncludeItemTypes = new[] { itemType },
-                    Recursive = true,
-                    TopParentIds = topParentIds.Length > 0 ? topParentIds : null
+                    Recursive = true
                 };
+
+                if (topParentIds.Length > 0)
+                    query.TopParentIds = topParentIds;
 
                 var results = _libraryManager.GetItemList(query);
 
