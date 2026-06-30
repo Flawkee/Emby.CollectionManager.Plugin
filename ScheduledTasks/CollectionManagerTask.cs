@@ -243,10 +243,13 @@ namespace CollectionManager.Plugin.ScheduledTasks
                                 var internalIds = items.Select(x => x.InternalId).ToArray();
 
                                 _logger.Info($"[CollectionManager] Processing '{serviceName}' — {items.Count} item(s)");
-                                await helper.EnsureItemsInCollectionAsync(serviceName, internalIds).ConfigureAwait(false);
+                                await helper.EnsureItemsInCollectionAsync(serviceName, internalIds, config.RepairManagedCollections).ConfigureAwait(false);
 
                                 progress.Report(Math.Min(95, 60 + (i + 1) * 35.0 / serviceList.Count));
                             }
+
+                            if (config.RepairManagedCollections)
+                                helper.RemoveStaleStreamingServiceCollections(serviceList);
                         }
                     }
                 }

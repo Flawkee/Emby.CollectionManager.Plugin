@@ -17,6 +17,7 @@ namespace CollectionManager.Plugin.Configuration
 
         // Streaming Collections
         public bool EnableStreamingServiceCollections { get; set; } = true;
+        public bool RepairManagedCollections { get; set; } = true;
         public bool IncludeMovies { get; set; } = true;
         public bool IncludeTvShows { get; set; } = true;
         public bool UpdateCollectionsLibraryImage { get; set; } = true;

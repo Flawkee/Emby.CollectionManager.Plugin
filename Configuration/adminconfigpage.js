@@ -19,6 +19,7 @@ define([
             form.elements.chkEnableUniverses.checked      = !!cfg.EnableTvUniversePlaylists;
             form.elements.chkUpdatePlaylistsImage.checked = !!cfg.UpdatePlaylistsLibraryImage;
             form.elements.chkEnableStreaming.checked      = !!cfg.EnableStreamingServiceCollections;
+            form.elements.chkRepairManagedCollections.checked = (cfg.RepairManagedCollections !== false);
             form.elements.chkIncludeMovies.checked        = !!cfg.IncludeMovies;
             form.elements.chkIncludeTvShows.checked       = !!cfg.IncludeTvShows;
             form.elements.chkUpdateCollectionsImage.checked = !!cfg.UpdateCollectionsLibraryImage;
@@ -32,6 +33,7 @@ define([
             cfg.EnableTvUniversePlaylists        = form.elements.chkEnableUniverses.checked;
             cfg.UpdatePlaylistsLibraryImage      = form.elements.chkUpdatePlaylistsImage.checked;
             cfg.EnableStreamingServiceCollections = form.elements.chkEnableStreaming.checked;
+            cfg.RepairManagedCollections          = form.elements.chkRepairManagedCollections.checked;
             cfg.IncludeMovies                    = form.elements.chkIncludeMovies.checked;
             cfg.IncludeTvShows                   = form.elements.chkIncludeTvShows.checked;
             cfg.UpdateCollectionsLibraryImage    = form.elements.chkUpdateCollectionsImage.checked;

@@ -173,11 +173,11 @@ namespace CollectionManager.Plugin.Helpers
         /// Creates the collection (with items) if it does not exist; adds items if it does.
         /// Sets the primary image from the embedded logo on creation, or if the image is missing.
         /// </summary>
-        public async Task EnsureItemsInCollectionAsync(string collectionName, long[] itemInternalIds)
+        public async Task EnsureItemsInCollectionAsync(string collectionName, long[] itemInternalIds, bool repairManagedCollections)
         {
             if (itemInternalIds.Length == 0) return;
 
-            DebugLog($"[CollectionManager] EnsureItemsInCollection: collection='{collectionName}' itemCount={itemInternalIds.Length} ids=[{string.Join(",", itemInternalIds)}]");
+            DebugLog($"[CollectionManager] EnsureItemsInCollection: collection='{collectionName}' itemCount={itemInternalIds.Length} repair={repairManagedCollections} ids=[{string.Join(",", itemInternalIds)}]");
 
             var cm = GetCollectionManager();
             if (cm == null) return;
@@ -198,9 +198,26 @@ namespace CollectionManager.Plugin.Helpers
 
                 if (existing != null)
                 {
-                    _logger.Debug($"[CollectionManager] Adding {itemInternalIds.Length} item(s) to existing '{collectionName}'");
-                    await cm.AddToCollection(existing.InternalId, itemInternalIds).ConfigureAwait(false);
-                    DebugLog($"[CollectionManager] AddToCollection complete. HasPrimaryImage={existing.HasImage(ImageType.Primary, 0)}");
+                    var existingIds = existing.GetChildren(new InternalItemsQuery()).Select(i => i.InternalId).ToArray();
+                    var plan = ManagedCollectionRepairPlanner.Plan(existingIds, itemInternalIds, repairManagedCollections);
+
+                    if (plan.ItemIdsToRemove.Length > 0)
+                    {
+                        _logger.Info($"[CollectionManager] Repairing '{collectionName}' — removing {plan.ItemIdsToRemove.Length} stale item(s)");
+                        cm.RemoveFromCollection(existing, plan.ItemIdsToRemove);
+                    }
+
+                    if (plan.ItemIdsToAdd.Length > 0)
+                    {
+                        _logger.Info($"[CollectionManager] Repairing '{collectionName}' — adding {plan.ItemIdsToAdd.Length} missing item(s)");
+                        await cm.AddToCollection(existing.InternalId, plan.ItemIdsToAdd).ConfigureAwait(false);
+                    }
+                    else
+                    {
+                        DebugLog($"[CollectionManager] '{collectionName}' already contains all desired items");
+                    }
+
+                    DebugLog($"[CollectionManager] Collection repair complete. HasPrimaryImage={existing.HasImage(ImageType.Primary, 0)}");
 
                     if (!existing.HasImage(ImageType.Primary, 0))
                         TrySetCollectionImage(existing, collectionName);
@@ -263,6 +280,34 @@ namespace CollectionManager.Plugin.Helpers
 
             if (removed > 0)
                 _logger.Info($"[CollectionManager] Removed {removed} streaming service collection(s)");
+        }
+
+        public void RemoveStaleStreamingServiceCollections(IReadOnlyCollection<string> validCollectionNames)
+        {
+            var valid = new HashSet<string>(validCollectionNames ?? Array.Empty<string>(), StringComparer.OrdinalIgnoreCase);
+            foreach (var serviceName in LogoResourceMap.Keys)
+            {
+                if (valid.Contains(serviceName)) continue;
+
+                var existing = _libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { "BoxSet" },
+                    Name             = serviceName,
+                    Recursive        = true
+                }).OfType<BoxSet>().FirstOrDefault();
+
+                if (existing == null) continue;
+
+                try
+                {
+                    _logger.Info($"[CollectionManager] Repairing managed collections — removing stale streaming service collection '{serviceName}'");
+                    _libraryManager.DeleteItem(existing, new DeleteOptions { DeleteFileLocation = true });
+                }
+                catch (Exception ex)
+                {
+                    _logger.Warn($"[CollectionManager] Failed to delete stale collection '{serviceName}': {ex.Message}");
+                }
+            }
         }
 
         /// <summary>

@@ -98,6 +98,17 @@
                             the managed streaming services is removed on the next task run.
                         </div>
                     </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkRepairManagedCollections" name="chkRepairManagedCollections" />
+                            <span>Repair managed collections</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Keeps plugin-managed collections exact on every task run. Missing matched items are added, stale items are removed,
+                            and managed streaming-service collections with no current matches are deleted. Disable to preserve manually added
+                            items inside managed collections.
+                        </div>
+                    </div>
                     <div class="checkboxContainer">
                         <label>
                             <input is="emby-checkbox" type="checkbox" id="chkIncludeMovies" name="chkIncludeMovies" />
