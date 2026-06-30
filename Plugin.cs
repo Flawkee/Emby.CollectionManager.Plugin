@@ -98,12 +98,14 @@ namespace CollectionManager.Plugin
                 EmbeddedResourcePath = GetType().Namespace + ".Configuration.adminconfigpage.js"
             };
 
-            // Per-user "Dynamic Playlists" page
+            // Per-user "Dynamic Playlists" page. Hide the user-menu entry when the admin
+            // disables per-user smart playlists server-wide, since the page's primary purpose
+            // is unavailable in that state.
             yield return new PluginPageInfo
             {
                 Name                 = "collectionmanager-userplaylists",
                 EmbeddedResourcePath = GetType().Namespace + ".Configuration.configurationpage.html",
-                EnableInUserMenu     = true,
+                EnableInUserMenu     = Options.EnableDynamicUserPlaylists,
                 EnableInMainMenu     = false,
                 MenuSection          = "user",
                 MenuIcon             = "queue_music",
