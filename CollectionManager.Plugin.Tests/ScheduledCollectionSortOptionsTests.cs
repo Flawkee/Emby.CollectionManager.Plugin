@@ -14,4 +14,14 @@ public sealed class ScheduledCollectionSortOptionsTests
     {
         Assert.Equal(expected, ScheduledCollectionSortOptions.IsDateCreatedDescending(sortBy));
     }
+
+    [Theory]
+    [InlineData("CommunityRatingDescending", true)]
+    [InlineData("communityratingdescending", true)]
+    [InlineData("DateCreatedDescending", false)]
+    [InlineData("", false)]
+    public void IsCommunityRatingDescending_DetectsSupportedSort(string sortBy, bool expected)
+    {
+        Assert.Equal(expected, ScheduledCollectionSortOptions.IsCommunityRatingDescending(sortBy));
+    }
 }

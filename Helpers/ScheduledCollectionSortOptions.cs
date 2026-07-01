@@ -5,10 +5,16 @@ namespace CollectionManager.Plugin.Helpers
     public static class ScheduledCollectionSortOptions
     {
         public const string DateCreatedDescending = "DateCreatedDescending";
+        public const string CommunityRatingDescending = "CommunityRatingDescending";
 
         public static bool IsDateCreatedDescending(string sortBy)
         {
             return string.Equals(sortBy, DateCreatedDescending, StringComparison.OrdinalIgnoreCase);
+        }
+
+        public static bool IsCommunityRatingDescending(string sortBy)
+        {
+            return string.Equals(sortBy, CommunityRatingDescending, StringComparison.OrdinalIgnoreCase);
         }
     }
 }

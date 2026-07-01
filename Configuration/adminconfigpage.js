@@ -24,6 +24,7 @@ define([
         var btnTestMdblistApiKey = view.querySelector('#btnTestMdblistApiKey');
         var divMdblistApiKeyStatus = view.querySelector('#divMdblistApiKeyStatus');
         var divFeaturedExamples = view.querySelector('#divFeaturedScheduledExamples');
+        var divFeaturedStatus = view.querySelector('#divFeaturedScheduledStatus');
         var txtQuickScheduledName = view.querySelector('#txtQuickScheduledName');
         var txtQuickScheduledSource = view.querySelector('#txtQuickScheduledSource');
         var btnQuickAddScheduledCollection = view.querySelector('#btnQuickAddScheduledCollection');
@@ -97,6 +98,7 @@ define([
             def = def || {};
             if (def.IncludedImdbIds && def.IncludedImdbIds.length) return def.IncludedImdbIds.length + ' direct IMDb title ID' + (def.IncludedImdbIds.length === 1 ? '' : 's');
             if (def.MdblistListPath) return friendlyMdblistSource(def.MdblistListPath);
+            if (def.SortBy === 'CommunityRatingDescending') return 'Local Emby ratings';
             return 'Library filters';
         }
 
@@ -239,7 +241,7 @@ define([
         function presetDefinition(kind) {
             switch (kind) {
                 case 'top-100-movies':
-                    return { Enabled: true, Name: 'Top 100 Movies', ContentType: 'Movies', MdblistListPath: 'official:movies/moviemeter', MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                    return { Enabled: true, Name: 'Top Rated Movies', ContentType: 'Movies', SortBy: 'CommunityRatingDescending', MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'popular-movies':
                     return { Enabled: true, Name: 'Popular Movies', ContentType: 'Movies', MdblistListPath: 'official:movies/popular', MaxItems: 50, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'streaming-chart-movies':
@@ -285,6 +287,19 @@ define([
                 default:
                     return { Enabled: true, Name: 'New Custom Collection', ContentType: 'Both', RemoveWhenInactive: true, MatchMode: 'All' };
             }
+        }
+
+        function migrateDefinition(def) {
+            def = def || {};
+            var mdblist = mdblistPathKey(def.MdblistListPath || '');
+            if ((def.Name === 'Top 100 Movies' || def.Name === 'IMDb MovieMeter Top Movies') && mdblist === 'official/movies/moviemeter') {
+                def.Name = 'Top Rated Movies';
+                def.MdblistListPath = '';
+                def.SortBy = 'CommunityRatingDescending';
+                def.ContentType = 'Movies';
+                def.MaxItems = def.MaxItems || 100;
+            }
+            return def;
         }
 
         function scheduleKind(def) {
@@ -468,6 +483,7 @@ define([
             if (def.PlayState && def.PlayState !== 'Any') parts.push(def.PlayState);
             if (def.IsFavorite && def.IsFavorite !== 'Any') parts.push(def.IsFavorite === 'Yes' ? 'Favorites' : 'Not favorites');
             if (def.SortBy === 'DateCreatedDescending') parts.push('Recently added first');
+            if (def.SortBy === 'CommunityRatingDescending') parts.push('Top rated first');
             if (def.MaxRuntimeMinutes && def.MaxRuntimeMinutes > 0) parts.push('≤ ' + def.MaxRuntimeMinutes + ' min');
             return parts.join(' • ') || 'No filters';
         }
@@ -571,7 +587,7 @@ define([
             form.elements.chkUpdateCollectionsImage.checked = !!cfg.UpdateCollectionsLibraryImage;
             form.elements.chkEnableScheduledCollections.checked = !!cfg.EnableScheduledCollections;
             form.elements.txtMdblistApiKey.value = cfg.MdblistApiKey || '';
-            renderScheduledCollections(cfg.ScheduledCollections || []);
+            renderScheduledCollections((cfg.ScheduledCollections || []).map(migrateDefinition));
             form.elements.chkDebugLogging.checked         = !!cfg.EnableDebugLogging;
         }
 
@@ -614,10 +630,59 @@ define([
             });
         }
 
+        function upsertScheduledDefinition(def) {
+            def = migrateDefinition(def);
+            var defs = readScheduledCollectionsFromEditor().map(migrateDefinition);
+            var name = (def.Name || '').toLowerCase();
+            var replaced = false;
+            defs = defs.map(function (existing) {
+                var existingName = (existing.Name || '').toLowerCase();
+                if (existingName === name || (name === 'top rated movies' && existingName === 'top 100 movies')) {
+                    replaced = true;
+                    return def;
+                }
+                return existing;
+            });
+            if (!replaced) defs.push(def);
+            renderScheduledCollections(defs);
+            form.elements.chkEnableScheduledCollections.checked = true;
+            renderSetupChecklist(readScheduledCollectionsFromEditor());
+            return def;
+        }
+
+        function setStatus(el, message, good) {
+            if (!el) return;
+            el.innerHTML = '<span style="color:' + (good ? '#7bd88f' : '#ffcc66') + ';font-weight:700;">' + (good ? '✓' : '⚠') + '</span> ' + escText(message);
+        }
+
+        function createDefinitionNow(def, statusEl) {
+            def = upsertScheduledDefinition(def);
+            setStatus(statusEl || divFeaturedStatus, 'Saving and previewing ' + def.Name + '…', true);
+            return saveConfig().then(function () {
+                var previewRequest = JSON.parse(JSON.stringify(def));
+                previewRequest.MdblistApiKey = (form.elements.txtMdblistApiKey.value || '').trim();
+                return apiPost('CollectionManager/ScheduledCollections/Preview', previewRequest);
+            }).then(function (r) {
+                var preview = typeof r === 'string' ? JSON.parse(r || '{}') : r;
+                if (!preview || !preview.Count) {
+                    setStatus(statusEl || divFeaturedStatus, def.Name + ' saved, but preview found 0 matching items. Open More options to adjust filters.', false);
+                    return preview;
+                }
+                setStatus(statusEl || divFeaturedStatus, 'Creating ' + def.Name + ' from ' + preview.Count + ' matched item(s)…', true);
+                return apiPost('CollectionManager/ScheduledCollections/Run', def).then(function (runResponse) {
+                    var run = typeof runResponse === 'string' ? JSON.parse(runResponse || '{}') : runResponse;
+                    setStatus(statusEl || divFeaturedStatus, run.Message || ('Created ' + def.Name + '.'), !!(!run || run.Success !== false));
+                    return run;
+                });
+            }, function () {
+                setStatus(statusEl || divFeaturedStatus, 'Could not save or preview this collection. Open More options and try Preview First.', false);
+            });
+        }
+
         function onSubmit(ev) {
             ev.preventDefault();
             saveConfig().then(function () {
-                Dashboard.alert('Settings saved. Use Preview First for no-change checks, Create Collection for one custom collection, or Run All Collections for the full task.');
+                Dashboard.alert('Settings saved. One-click collections create immediately; More options are for advanced editing.');
             }).catch(function () {});
             return false;
         }
@@ -767,12 +832,14 @@ define([
                     return;
                 }
                 var defs = readScheduledCollectionsFromEditor();
-                defs.push(simpleCollectionDefinition(txtQuickScheduledName.value, source));
+                var def = simpleCollectionDefinition(txtQuickScheduledName.value, source);
+                defs.push(def);
                 renderScheduledCollections(defs);
                 form.elements.chkEnableScheduledCollections.checked = true;
                 renderSetupChecklist(readScheduledCollectionsFromEditor());
-                divQuickScheduledHint.innerHTML = escText(simpleCollectionHint(source) + ' Collection added below. Click Preview First to check matches.');
+                divQuickScheduledHint.innerHTML = escText(simpleCollectionHint(source) + ' Saving and previewing now…');
                 txtQuickScheduledSource.value = '';
+                createDefinitionNow(def, divQuickScheduledHint);
             });
         }
 
@@ -780,7 +847,7 @@ define([
             divFeaturedExamples.addEventListener('click', function (ev) {
                 var btn = ev.target.closest ? ev.target.closest('.cmFeaturedPreset') : null;
                 if (!btn) return;
-                addPreset(btn.getAttribute('data-preset') || 'custom', true);
+                createDefinitionNow(presetDefinition(btn.getAttribute('data-preset') || 'custom'), divFeaturedStatus);
             });
         }
 

@@ -128,6 +128,7 @@ namespace CollectionManager.Plugin.Helpers
         {
             return def.MaxRuntimeMinutes > 0
                 || ScheduledCollectionSortOptions.IsDateCreatedDescending(def.SortBy)
+                || ScheduledCollectionSortOptions.IsCommunityRatingDescending(def.SortBy)
                 || HasExternalImdbFilter(def);
         }
 
@@ -141,6 +142,9 @@ namespace CollectionManager.Plugin.Helpers
             var filtered = ApplyPostFilters(def, items, mdblistApiKeyOverride);
             if (ScheduledCollectionSortOptions.IsDateCreatedDescending(def.SortBy))
                 filtered = filtered.OrderByDescending(i => ReadNullableDateTime(i, "DateCreated") ?? DateTime.MinValue);
+            else if (ScheduledCollectionSortOptions.IsCommunityRatingDescending(def.SortBy))
+                filtered = filtered.OrderByDescending(i => ReadNullableDouble(i, "CommunityRating") ?? -1d)
+                    .ThenBy(i => i.SortName ?? i.Name ?? string.Empty);
             return def.MaxItems > 0 ? filtered.Take(def.MaxItems) : filtered;
         }
 
@@ -404,6 +408,20 @@ namespace CollectionManager.Plugin.Helpers
             var value = item.GetType().GetProperty(propertyName)?.GetValue(item);
             if (value is DateTime dt) return dt;
             return null;
+        }
+
+        private static double? ReadNullableDouble(object item, string propertyName)
+        {
+            var value = item.GetType().GetProperty(propertyName)?.GetValue(item);
+            switch (value)
+            {
+                case double d: return d;
+                case float f: return f;
+                case decimal m: return (double)m;
+                case int i: return i;
+                case long l: return l;
+                default: return null;
+            }
         }
 
         private long[] ResolveStudioIds(string[] studioNames)
