@@ -1,3 +1,4 @@
+using CollectionManager.Plugin.Configuration;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -38,6 +39,22 @@ namespace CollectionManager.Plugin.Helpers
         {
             var match = ImdbIdRegex.Match(value ?? string.Empty);
             return match.Success ? match.Value.ToLowerInvariant() : string.Empty;
+        }
+
+        public static ScheduledCollectionDefinition BuildSimpleDefinition(string name, string source)
+        {
+            var normalizedName = string.IsNullOrWhiteSpace(name) ? "IMDb List Collection" : name.Trim();
+            var imdbIds = ExtractImdbIdsFromText(source ?? string.Empty);
+            return new ScheduledCollectionDefinition
+            {
+                Enabled = true,
+                Name = normalizedName,
+                ContentType = "Both",
+                IncludedImdbIds = imdbIds,
+                MdblistListPath = imdbIds.Length > 0 ? string.Empty : (source ?? string.Empty).Trim(),
+                RemoveWhenInactive = false,
+                MatchMode = "All"
+            };
         }
 
         public static string BuildMdblistItemsPath(string input)

@@ -31,4 +31,26 @@ public sealed class ScheduledCollectionExternalIdsTests
 
         Assert.Equal(new[] { "tt0111161", "tt0068646", "tt0903747" }, ScheduledCollectionExternalIds.ExtractImdbIdsFromMdblistJson(json));
     }
+
+    [Fact]
+    public void BuildSimpleDefinition_UsesDirectImdbIdsWhenPasteContainsTitleIds()
+    {
+        var def = ScheduledCollectionExternalIds.BuildSimpleDefinition("", "https://www.imdb.com/title/tt0111161/ tt0068646");
+
+        Assert.Equal("IMDb List Collection", def.Name);
+        Assert.Equal("Both", def.ContentType);
+        Assert.Equal(new[] { "tt0111161", "tt0068646" }, def.IncludedImdbIds);
+        Assert.Equal(string.Empty, def.MdblistListPath);
+        Assert.False(def.RemoveWhenInactive);
+    }
+
+    [Fact]
+    public void BuildSimpleDefinition_UsesMdblistSourceWhenPasteLooksLikeList()
+    {
+        var def = ScheduledCollectionExternalIds.BuildSimpleDefinition("Watchlist", "https://mdblist.com/lists/abdiel/watchlist");
+
+        Assert.Equal("Watchlist", def.Name);
+        Assert.Empty(def.IncludedImdbIds);
+        Assert.Equal("https://mdblist.com/lists/abdiel/watchlist", def.MdblistListPath);
+    }
 }

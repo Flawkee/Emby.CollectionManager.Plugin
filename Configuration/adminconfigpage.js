@@ -20,6 +20,10 @@ define([
         var selScheduledPreset = view.querySelector('#selScheduledPreset');
         var btnAddScheduledCollection = view.querySelector('#btnAddScheduledCollection');
         var btnRunAllScheduledCollections = view.querySelector('#btnRunAllScheduledCollections');
+        var txtQuickScheduledName = view.querySelector('#txtQuickScheduledName');
+        var txtQuickScheduledSource = view.querySelector('#txtQuickScheduledSource');
+        var btnQuickAddScheduledCollection = view.querySelector('#btnQuickAddScheduledCollection');
+        var divQuickScheduledHint = view.querySelector('#divQuickScheduledHint');
         var _libraries = [];
         var _metadata = { Libraries: [], Genres: [], Studios: [], Tags: [], Years: [], Ratings: [] };
 
@@ -40,6 +44,36 @@ define([
             return parseInt(parts[index], 10) || fallback;
         }
         function makeDate(month, day) { return two(month) + '-' + two(day); }
+
+        function extractImdbIdsFromText(text) {
+            var matches = String(text || '').match(/tt\d{7,10}/gi) || [];
+            var seen = {};
+            return matches.map(function (id) { return id.toLowerCase(); }).filter(function (id) {
+                if (seen[id]) return false;
+                seen[id] = true;
+                return true;
+            });
+        }
+
+        function simpleCollectionDefinition(name, source) {
+            var ids = extractImdbIdsFromText(source);
+            return {
+                Enabled: true,
+                Name: (name || '').trim() || 'IMDb List Collection',
+                ContentType: 'Both',
+                IncludedImdbIds: ids,
+                MdblistListPath: ids.length ? '' : (source || '').trim(),
+                RemoveWhenInactive: false,
+                MatchMode: 'All'
+            };
+        }
+
+        function simpleCollectionHint(source) {
+            var ids = extractImdbIdsFromText(source);
+            if (!String(source || '').trim()) return '';
+            if (ids.length) return 'Detected ' + ids.length + ' IMDb title ID' + (ids.length === 1 ? '' : 's') + '. No MDBList API key needed for direct title IDs.';
+            return 'Detected a list source. If this is an IMDb watchlist/list, import it into MDBList first, add your MDBList API key above, then Preview.';
+        }
 
         function renderCheckboxList(container, items, selectedValues, name) {
             var selected = (selectedValues || []).reduce(function (acc, v) { acc[v] = true; return acc; }, {});
@@ -239,13 +273,17 @@ define([
                 + '<button is="emby-button" type="button" class="cmRemoveScheduled"><span>Remove</span></button>'
                 + '</div></div>'
                 + '<input type="hidden" class="cmSchedSortBy" value="' + escAttr(def.SortBy || '') + '" />'
-                + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75em;margin-top:.75em;">'
-                + '<label>Collection name<br /><input class="cmSchedName" type="text" value="' + escAttr(def.Name || '') + '" placeholder="Halloween Movies" /></label>'
+                + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.75em;margin-top:.75em;">'
+                + '<label>Collection name<br /><input class="cmSchedName" type="text" value="' + escAttr(def.Name || '') + '" placeholder="IMDb Watchlist" /></label>'
                 + '<label>Include<br /><select class="cmSchedContentType">'
                 + '<option value="Both"' + ((def.ContentType || 'Both') === 'Both' ? ' selected' : '') + '>Movies + TV Shows</option>'
                 + '<option value="Movies"' + (def.ContentType === 'Movies' ? ' selected' : '') + '>Movies only</option>'
                 + '<option value="TvShows"' + (def.ContentType === 'TvShows' ? ' selected' : '') + '>TV shows only</option>'
                 + '</select></label>'
+                + '<label><span>IMDb / MDBList source</span><br /><input class="cmSchedMdblistListPath" type="text" value="' + escAttr(def.MdblistListPath || '') + '" placeholder="MDBList link/ID, or use IMDb IDs below" /></label>'
+                + '</div>'
+                + '<details class="cmAdvancedOptions" style="margin-top:.9em;"><summary style="cursor:pointer;font-weight:600;">More options: filters, schedule, libraries</summary>'
+                + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75em;margin-top:.75em;">'
                 + '<label>Match filters<br /><select class="cmSchedMatchMode">'
                 + '<option value="All"' + ((def.MatchMode || 'All') === 'All' ? ' selected' : '') + '>All filters</option>'
                 + '<option value="Any"' + (def.MatchMode === 'Any' ? ' selected' : '') + '>Any filter</option>'
@@ -253,16 +291,15 @@ define([
                 + '<label><span>Item limit</span><br /><input class="cmSchedMaxItems" type="number" min="1" value="' + escAttr(def.MaxItems || '') + '"' + (noLimit ? ' disabled="disabled"' : '') + ' placeholder="No limit" /></label>'
                 + '<label style="align-self:end;"><input is="emby-checkbox" type="checkbox" class="cmSchedNoLimit"' + (noLimit ? ' checked="checked"' : '') + ' /><span>No limit</span></label>'
                 + '<label><span>Max runtime minutes</span><br /><input class="cmSchedMaxRuntime" type="number" min="1" value="' + escAttr(def.MaxRuntimeMinutes || '') + '" placeholder="No runtime limit" /></label>'
-                + '<label><span>MDBList source</span><br /><input class="cmSchedMdblistListPath" type="text" value="' + escAttr(def.MdblistListPath || '') + '" placeholder="12345, user/list, official:slug, external:id, or URL" /></label>'
                 + '</div>'
                 + '<div style="margin-top:.9em;"><h4 style="margin:.25em 0;">Libraries</h4>' + renderLibraryCheckboxes(def) + '</div>'
                 + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.9em;margin-top:.9em;">'
+                + tokenField('ImdbIds', 'IMDb title IDs / URLs', def.IncludedImdbIds, [], 'tt0111161 or imdb.com/title/tt0111161', index)
                 + tokenField('Genres', 'Genres', def.IncludedGenres, _metadata.Genres, 'Horror', index)
                 + tokenField('Studios', 'Studios / services', def.IncludedStudios, _metadata.Studios, 'Netflix', index)
                 + tokenField('Tags', 'Tags', def.IncludedTags, _metadata.Tags, '4K', index)
                 + tokenField('Years', 'Years', def.IncludedYears, _metadata.Years, String(new Date().getFullYear()), index)
                 + tokenField('Ratings', 'Ratings', def.IncludedOfficialRatings, _metadata.Ratings, 'PG', index)
-                + tokenField('ImdbIds', 'IMDb title IDs / URLs', def.IncludedImdbIds, [], 'tt0111161 or imdb.com/title/tt0111161', index)
                 + '</div>'
                 + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.75em;margin-top:.9em;">'
                 + '<label>Watched state<br /><select class="cmSchedPlayState"><option value="Any"' + ((def.PlayState || 'Any') === 'Any' ? ' selected' : '') + '>Any</option><option value="Played"' + (def.PlayState === 'Played' ? ' selected' : '') + '>Watched only</option><option value="Unplayed"' + (def.PlayState === 'Unplayed' ? ' selected' : '') + '>Unwatched only</option></select></label>'
@@ -271,6 +308,7 @@ define([
                 + '</div>'
                 + scheduleControls(def)
                 + '<label style="display:block;margin-top:.75em;"><input is="emby-checkbox" type="checkbox" class="cmSchedRemoveInactive"' + (def.RemoveWhenInactive !== false ? ' checked="checked"' : '') + ' /><span>Remove this collection when inactive</span></label>'
+                + '</details>'
                 + '<div class="cmPreviewResult fieldDescription" style="margin-top:.9em;"></div>'
                 + '</div>';
         }
@@ -586,6 +624,28 @@ define([
             renderScheduledCollections(defs);
             form.elements.chkEnableScheduledCollections.checked = true;
         });
+
+        if (txtQuickScheduledSource) {
+            txtQuickScheduledSource.addEventListener('input', function () {
+                divQuickScheduledHint.innerHTML = escText(simpleCollectionHint(txtQuickScheduledSource.value));
+            });
+        }
+
+        if (btnQuickAddScheduledCollection) {
+            btnQuickAddScheduledCollection.addEventListener('click', function () {
+                var source = (txtQuickScheduledSource.value || '').trim();
+                if (!source) {
+                    Dashboard.alert({ title: 'Add IMDb / MDBList collection', message: 'Paste an IMDb title/list, IMDb IDs, or MDBList source first.' });
+                    return;
+                }
+                var defs = readScheduledCollectionsFromEditor();
+                defs.push(simpleCollectionDefinition(txtQuickScheduledName.value, source));
+                renderScheduledCollections(defs);
+                form.elements.chkEnableScheduledCollections.checked = true;
+                divQuickScheduledHint.innerHTML = escText(simpleCollectionHint(source) + ' Collection added below. Click Preview to check matches.');
+                txtQuickScheduledSource.value = '';
+            });
+        }
 
         btnRunAllScheduledCollections.addEventListener('click', function () {
             saveConfig().then(function () {

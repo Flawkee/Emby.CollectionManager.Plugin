@@ -155,6 +155,18 @@
                             Paste a MDBList numeric ID, username/list-name, official:slug, external:id, or mdblist.com list URL into a custom collection card.
                         </div>
                     </div>
+                    <div class="inputContainer" style="border:1px solid #444;border-radius:10px;padding:1em;background:rgba(255,255,255,.04);">
+                        <h3 style="margin-top:0;">Quick add from IMDb / MDBList</h3>
+                        <div class="fieldDescription" style="margin-bottom:.75em;">
+                            Paste IMDb title URLs/IDs, or paste a MDBList link/ID for an imported IMDb watchlist/list. We'll set up the collection for you; preview before running.
+                        </div>
+                        <div style="display:grid;grid-template-columns:minmax(180px,260px) minmax(260px,1fr) auto;gap:.75em;align-items:end;">
+                            <label>Collection name<br /><input id="txtQuickScheduledName" type="text" placeholder="IMDb Watchlist" /></label>
+                            <label>IMDb / MDBList link or IDs<br /><input id="txtQuickScheduledSource" type="text" placeholder="tt0111161, imdb.com/title/..., mdblist.com/lists/..." /></label>
+                            <button is="emby-button" type="button" id="btnQuickAddScheduledCollection" class="raised"><span>Create</span></button>
+                        </div>
+                        <div id="divQuickScheduledHint" class="fieldDescription" style="margin-top:.65em;"></div>
+                    </div>
                     <div class="inputContainer">
                         <div style="display:flex;gap:.75em;align-items:end;flex-wrap:wrap;margin-bottom:1em;">
                             <label style="min-width:230px;">
