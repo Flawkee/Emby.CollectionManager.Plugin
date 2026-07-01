@@ -44,45 +44,153 @@ namespace CollectionManager.Plugin.Helpers
 
         public async Task ProcessScheduledCollectionsAsync(IEnumerable<ScheduledCollectionDefinition> definitions, DateTimeOffset now, CancellationToken cancellationToken)
         {
+            foreach (var def in definitions ?? Enumerable.Empty<ScheduledCollectionDefinition>())
+            {
+                if (cancellationToken.IsCancellationRequested) return;
+                await BuildScheduledCollectionAsync(def, now, cancellationToken).ConfigureAwait(false);
+            }
+        }
+
+        public async Task<int> BuildScheduledCollectionAsync(ScheduledCollectionDefinition def, DateTimeOffset now, CancellationToken cancellationToken)
+        {
             var collectionHelper = CollectionHelper.Instance;
             if (collectionHelper == null)
             {
                 _logger.Warn("[CollectionManager/ScheduledCollections] CollectionHelper not initialized — skipping");
-                return;
+                return 0;
             }
 
-            foreach (var def in definitions ?? Enumerable.Empty<ScheduledCollectionDefinition>())
+            if (cancellationToken.IsCancellationRequested || string.IsNullOrWhiteSpace(def.Name)) return 0;
+
+            var active = ScheduledCollectionEvaluator.IsActive(def, now);
+            if (!active)
             {
-                if (cancellationToken.IsCancellationRequested) return;
-                if (string.IsNullOrWhiteSpace(def.Name)) continue;
+                if (def.RemoveWhenInactive)
+                    RemoveCollection(def.Name, "outside schedule or disabled");
+                else
+                    DebugLog($"[CollectionManager/ScheduledCollections] '{def.Name}' inactive but RemoveWhenInactive=false — leaving collection untouched");
+                return 0;
+            }
 
-                var active = ScheduledCollectionEvaluator.IsActive(def, now);
-                if (!active)
+            var items = GetMatchingItems(def).ToArray();
+            _logger.Info($"[CollectionManager/ScheduledCollections] '{def.Name}' active — {items.Length} item(s) matched");
+
+            if (items.Length == 0)
+            {
+                if (def.RemoveWhenInactive)
+                    RemoveCollection(def.Name, "active schedule matched no items");
+                return 0;
+            }
+
+            var itemIds = items.Select(i => i.InternalId).ToArray();
+            await collectionHelper.EnsureItemsInCollectionAsync(def.Name, itemIds).ConfigureAwait(false);
+            return items.Length;
+        }
+
+        public IEnumerable<BaseItem> GetMatchingItems(ScheduledCollectionDefinition def)
+        {
+            if (string.Equals(def.MatchMode, "Any", StringComparison.OrdinalIgnoreCase) && HasAnyOptionalFilter(def))
+                return GetAnyFilterItems(def);
+
+            return _libraryManager.GetItemList(BuildQuery(def, includeFilters: true, includeLimit: true));
+        }
+
+        private IEnumerable<BaseItem> GetAnyFilterItems(ScheduledCollectionDefinition def)
+        {
+            var seen = new HashSet<long>();
+            var results = new List<BaseItem>();
+
+            foreach (var query in BuildAnyFilterQueries(def))
+            {
+                foreach (var item in _libraryManager.GetItemList(query))
                 {
-                    if (def.RemoveWhenInactive)
-                        RemoveCollection(def.Name, "outside schedule or disabled");
-                    else
-                        DebugLog($"[CollectionManager/ScheduledCollections] '{def.Name}' inactive but RemoveWhenInactive=false — leaving collection untouched");
-                    continue;
+                    if (seen.Add(item.InternalId))
+                        results.Add(item);
                 }
+            }
 
-                var query = BuildQuery(def);
-                var items = _libraryManager.GetItemList(query);
-                _logger.Info($"[CollectionManager/ScheduledCollections] '{def.Name}' active — {items.Length} item(s) matched");
+            return def.MaxItems > 0 ? results.Take(def.MaxItems) : results;
+        }
 
-                if (items.Length == 0)
+        private IEnumerable<InternalItemsQuery> BuildAnyFilterQueries(ScheduledCollectionDefinition def)
+        {
+            if (def.IncludedGenres?.Length > 0)
+            {
+                var q = BuildQuery(def, includeFilters: false, includeLimit: false);
+                q.Genres = def.IncludedGenres;
+                yield return q;
+            }
+
+            if (def.IncludedStudios?.Length > 0)
+            {
+                var q = BuildQuery(def, includeFilters: false, includeLimit: false);
+                q.StudioIds = ResolveStudioIds(def.IncludedStudios);
+                yield return q;
+            }
+
+            if (def.IncludedOfficialRatings?.Length > 0)
+            {
+                var q = BuildQuery(def, includeFilters: false, includeLimit: false);
+                q.OfficialRatings = def.IncludedOfficialRatings;
+                yield return q;
+            }
+
+            if (def.IncludedTags?.Length > 0)
+            {
+                var q = BuildQuery(def, includeFilters: false, includeLimit: false);
+                q.Tags = def.IncludedTags;
+                yield return q;
+            }
+
+            if (def.IncludedYears?.Length > 0)
+            {
+                var years = ParseYears(def.IncludedYears);
+                if (years.Length > 0)
                 {
-                    if (def.RemoveWhenInactive)
-                        RemoveCollection(def.Name, "active schedule matched no items");
-                    continue;
+                    var q = BuildQuery(def, includeFilters: false, includeLimit: false);
+                    q.Years = years;
+                    yield return q;
                 }
+            }
 
-                var itemIds = items.Select(i => i.InternalId).ToArray();
-                await collectionHelper.EnsureItemsInCollectionAsync(def.Name, itemIds).ConfigureAwait(false);
+            if (def.PlayState == "Played" || def.PlayState == "Unplayed")
+            {
+                var q = BuildQuery(def, includeFilters: false, includeLimit: false);
+                q.IsPlayed = def.PlayState == "Played";
+                yield return q;
+            }
+
+            if (def.IsFavorite == "Yes" || def.IsFavorite == "No")
+            {
+                var q = BuildQuery(def, includeFilters: false, includeLimit: false);
+                q.IsFavorite = def.IsFavorite == "Yes";
+                yield return q;
+            }
+
+            if (def.SeriesStatus != "Any" && !string.IsNullOrEmpty(def.SeriesStatus)
+                && Enum.TryParse<SeriesStatus>(def.SeriesStatus, out var seriesStatus))
+            {
+                var q = BuildQuery(def, includeFilters: false, includeLimit: false);
+                q.SeriesStatuses = new[] { seriesStatus };
+                yield return q;
             }
         }
 
-        private InternalItemsQuery BuildQuery(ScheduledCollectionDefinition def)
+        private bool HasAnyOptionalFilter(ScheduledCollectionDefinition def)
+        {
+            return (def.IncludedGenres?.Length > 0)
+                || (def.IncludedStudios?.Length > 0)
+                || (def.IncludedOfficialRatings?.Length > 0)
+                || (def.IncludedTags?.Length > 0)
+                || (def.IncludedYears?.Length > 0)
+                || def.PlayState == "Played"
+                || def.PlayState == "Unplayed"
+                || def.IsFavorite == "Yes"
+                || def.IsFavorite == "No"
+                || (def.SeriesStatus != "Any" && !string.IsNullOrEmpty(def.SeriesStatus));
+        }
+
+        private InternalItemsQuery BuildQuery(ScheduledCollectionDefinition def, bool includeFilters, bool includeLimit)
         {
             string[] itemTypes;
             switch (def.ContentType)
@@ -98,58 +206,72 @@ namespace CollectionManager.Plugin.Helpers
                 Recursive        = true,
             };
 
-            if (def.IncludedGenres?.Length > 0)
-                query.Genres = def.IncludedGenres;
+            var sourceLibraryIds = LibraryScanner.Instance?.ResolveSourceLibraryInternalIds(def.SourceLibraryIds) ?? Array.Empty<long>();
+            if (sourceLibraryIds.Length > 0)
+                query.TopParentIds = sourceLibraryIds;
 
-            if (def.IncludedStudios?.Length > 0)
+            if (includeFilters)
             {
-                query.StudioIds = def.IncludedStudios
-                    .SelectMany(name => _libraryManager.GetItemList(new InternalItemsQuery
-                    {
-                        IncludeItemTypes = new[] { "Studio" },
-                        Name = name,
-                        Limit = 1
-                    }))
-                    .Select(s => s.InternalId)
-                    .ToArray();
+                if (def.IncludedGenres?.Length > 0)
+                    query.Genres = def.IncludedGenres;
+
+                if (def.IncludedStudios?.Length > 0)
+                    query.StudioIds = ResolveStudioIds(def.IncludedStudios);
+
+                if (def.IncludedOfficialRatings?.Length > 0)
+                    query.OfficialRatings = def.IncludedOfficialRatings;
+
+                if (def.IncludedTags?.Length > 0)
+                    query.Tags = def.IncludedTags;
+
+                var years = ParseYears(def.IncludedYears);
+                if (years.Length > 0)
+                    query.Years = years;
+
+                switch (def.PlayState)
+                {
+                    case "Played":   query.IsPlayed = true;  break;
+                    case "Unplayed": query.IsPlayed = false; break;
+                }
+
+                switch (def.IsFavorite)
+                {
+                    case "Yes": query.IsFavorite = true;  break;
+                    case "No":  query.IsFavorite = false; break;
+                }
+
+                if (def.SeriesStatus != "Any" && !string.IsNullOrEmpty(def.SeriesStatus)
+                    && Enum.TryParse<SeriesStatus>(def.SeriesStatus, out var seriesStatus))
+                {
+                    query.SeriesStatuses = new[] { seriesStatus };
+                }
             }
 
-            if (def.IncludedOfficialRatings?.Length > 0)
-                query.OfficialRatings = def.IncludedOfficialRatings;
-
-            if (def.IncludedTags?.Length > 0)
-                query.Tags = def.IncludedTags;
-
-            if (def.IncludedYears?.Length > 0)
-            {
-                query.Years = def.IncludedYears
-                    .Select(y => int.TryParse(y, out var yr) ? yr : 0)
-                    .Where(y => y > 0)
-                    .ToArray();
-            }
-
-            switch (def.PlayState)
-            {
-                case "Played":   query.IsPlayed = true;  break;
-                case "Unplayed": query.IsPlayed = false; break;
-            }
-
-            switch (def.IsFavorite)
-            {
-                case "Yes": query.IsFavorite = true;  break;
-                case "No":  query.IsFavorite = false; break;
-            }
-
-            if (def.SeriesStatus != "Any" && !string.IsNullOrEmpty(def.SeriesStatus)
-                && Enum.TryParse<SeriesStatus>(def.SeriesStatus, out var seriesStatus))
-            {
-                query.SeriesStatuses = new[] { seriesStatus };
-            }
-
-            if (def.MaxItems > 0)
+            if (includeLimit && def.MaxItems > 0)
                 query.Limit = def.MaxItems;
 
             return query;
+        }
+
+        private long[] ResolveStudioIds(string[] studioNames)
+        {
+            return studioNames
+                .SelectMany(name => _libraryManager.GetItemList(new InternalItemsQuery
+                {
+                    IncludeItemTypes = new[] { "Studio" },
+                    Name = name,
+                    Limit = 1
+                }))
+                .Select(s => s.InternalId)
+                .ToArray();
+        }
+
+        private static int[] ParseYears(string[]? years)
+        {
+            return (years ?? Array.Empty<string>())
+                .Select(y => int.TryParse(y, out var yr) ? yr : 0)
+                .Where(y => y > 0)
+                .ToArray();
         }
 
         private void RemoveCollection(string collectionName, string reason)

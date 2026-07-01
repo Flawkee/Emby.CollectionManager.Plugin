@@ -9,6 +9,7 @@ namespace CollectionManager.Plugin.Configuration
         public string ContentType { get; set; } = "Both"; // Movies | TvShows | Both
 
         // Multi-value filters (values are names, e.g. genre names, studio names)
+        public string[] SourceLibraryIds { get; set; } = System.Array.Empty<string>();
         public string[] IncludedGenres { get; set; } = System.Array.Empty<string>();
         public string[] IncludedStudios { get; set; } = System.Array.Empty<string>();
         public string[] IncludedYears { get; set; } = System.Array.Empty<string>();
@@ -19,6 +20,7 @@ namespace CollectionManager.Plugin.Configuration
         public string PlayState { get; set; } = "Any";       // Any | Played | Unplayed
         public string IsFavorite { get; set; } = "Any";      // Any | Yes | No
         public string SeriesStatus { get; set; } = "Any";    // Any | Continuing | Ended
+        public string MatchMode { get; set; } = "All";       // All | Any
 
         // Limits
         public int MaxItems { get; set; } = 0;              // 0 = unlimited

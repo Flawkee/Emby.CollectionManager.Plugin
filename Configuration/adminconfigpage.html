@@ -98,6 +98,17 @@
                             the managed streaming services is removed on the next task run.
                         </div>
                     </div>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkRepairManagedCollections" name="chkRepairManagedCollections" />
+                            <span>Repair managed collections</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Keeps plugin-managed collections exact on every task run. Missing matched items are added, stale items are removed,
+                            and managed streaming-service collections with no current matches are deleted. Disable to preserve manually added
+                            items inside managed collections.
+                        </div>
+                    </div>
                     <div class="checkboxContainer">
                         <label>
                             <input is="emby-checkbox" type="checkbox" id="chkIncludeMovies" name="chkIncludeMovies" />
@@ -110,6 +121,12 @@
                             <span>Include TV shows</span>
                         </label>
                     </div>
+                    <h3 class="checkboxListLabel">Source Libraries</h3>
+                    <div id="divStreamingLibraries" class="paperList checkboxList checkboxList-paperList"></div>
+                    <div class="fieldDescription">
+                        Leave all unchecked to scan every library. Select one or more libraries to limit streaming collections to those sources.
+                    </div>
+                    <br />
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label>
                             <input is="emby-checkbox" type="checkbox" id="chkUpdateCollectionsImage" name="chkUpdateCollectionsImage" />
@@ -120,33 +137,39 @@
                         </div>
                     </div>
 
-                    <h2 style="margin-top:2em;">Scheduled Collections</h2>
+                    <h2 style="margin-top:2em;">Custom Collections</h2>
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label>
                             <input is="emby-checkbox" type="checkbox" id="chkEnableScheduledCollections" name="chkEnableScheduledCollections" />
-                            <span>Create scheduled / seasonal collections</span>
+                            <span>Create custom collections</span>
                         </label>
                         <div class="fieldDescription checkboxFieldDescription">
-                            Builds public collections only when their schedule is active, then removes them when inactive if RemoveWhenInactive is true.
-                            Use this for ACDB-style seasonal collections such as Halloween in October or Action Night every Friday.
+                            Build easy custom collections from presets, filters, and schedules. Use this for seasonal collections,
+                            weekly movie nights, kids collections, new releases, favorites, and other ACDB-style smart collections.
                         </div>
                     </div>
                     <div class="inputContainer">
                         <div style="display:flex;gap:.75em;align-items:end;flex-wrap:wrap;margin-bottom:1em;">
-                            <label style="min-width:220px;">
+                            <label style="min-width:230px;">
                                 <span class="fieldDescription" style="display:block;margin-bottom:.35em;">Start with a preset</span>
                                 <select id="selScheduledPreset" name="selScheduledPreset" is="emby-select" label="Preset">
                                     <option value="halloween">Halloween Horror</option>
                                     <option value="holiday">Holiday Movies</option>
                                     <option value="friday-action">Friday Action Night</option>
+                                    <option value="kids">Kids Collection</option>
+                                    <option value="new-releases">New Releases</option>
+                                    <option value="unwatched">Unwatched Movies</option>
+                                    <option value="favorites">Favorites</option>
+                                    <option value="4k">4K Movies</option>
                                     <option value="custom">Blank Custom Collection</option>
                                 </select>
                             </label>
                             <button is="emby-button" type="button" id="btnAddScheduledCollection" class="raised"><span>Add collection</span></button>
+                            <button is="emby-button" type="button" id="btnRunAllScheduledCollections"><span>Run all now</span></button>
                         </div>
+                        <div class="fieldDescription" style="margin-bottom:1em;">Tip: leave filters blank to include everything in the selected libraries/content type.</div>
 
                         <div id="divScheduledCollectionsEditor"></div>
-
                     </div>
 
                     <h2 style="margin-top:2em;">Diagnostics</h2>

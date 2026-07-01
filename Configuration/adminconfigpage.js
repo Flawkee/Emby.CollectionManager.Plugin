@@ -9,13 +9,18 @@ define([
 
     var pluginUniqueId = '80FDA42F-C32A-4BAE-8757-4DD49EF331A0';
     var dayNames = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+    var monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
     return function (view) {
 
         var form = view.querySelector('#cmAdminForm');
+        var divStreamingLibraries = view.querySelector('#divStreamingLibraries');
         var divScheduledEditor = view.querySelector('#divScheduledCollectionsEditor');
         var selScheduledPreset = view.querySelector('#selScheduledPreset');
         var btnAddScheduledCollection = view.querySelector('#btnAddScheduledCollection');
+        var btnRunAllScheduledCollections = view.querySelector('#btnRunAllScheduledCollections');
+        var _libraries = [];
+        var _metadata = { Libraries: [], Genres: [], Studios: [], Tags: [], Years: [], Ratings: [] };
 
         function escAttr(s) {
             return (s == null ? '' : String(s))
@@ -23,24 +28,80 @@ define([
                 .replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
-        function splitCsv(value) {
-            return (value || '').split(',').map(function (v) { return v.trim(); }).filter(function (v) { return v.length > 0; });
+        function escText(s) {
+            return (s == null ? '' : String(s))
+                .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         }
 
-        function joinCsv(values) {
-            return (values || []).join(', ');
+        function two(n) { n = parseInt(n, 10) || 0; return n < 10 ? '0' + n : String(n); }
+        function datePart(value, index, fallback) {
+            var parts = String(value || '').split('-');
+            return parseInt(parts[index], 10) || fallback;
+        }
+        function makeDate(month, day) { return two(month) + '-' + two(day); }
+
+        function renderCheckboxList(container, items, selectedValues, name) {
+            var selected = (selectedValues || []).reduce(function (acc, v) { acc[v] = true; return acc; }, {});
+            container.innerHTML = items.map(function (item) {
+                var checked = selected[item.Id] ? ' checked="checked"' : '';
+                return '<label class="emby-checkbox-label">'
+                    + '<input is="emby-checkbox" type="checkbox" name="' + escAttr(name) + '" value="' + escAttr(item.Id) + '"' + checked + ' />'
+                    + '<span>' + escText(item.Name) + '</span></label>';
+            }).join('') || '<div class="fieldDescription">No libraries found.</div>';
+        }
+
+        function readCheckboxList(container) {
+            return Array.prototype.slice.call(container.querySelectorAll('input[type="checkbox"]'))
+                .filter(function (cb) { return cb.checked; })
+                .map(function (cb) { return cb.value; });
+        }
+
+        function loadLibraries() {
+            return ApiClient.getJSON(ApiClient.getUrl('Library/VirtualFolders')).then(function (items) {
+                _libraries = (items || []).map(function (i) {
+                    return { Id: i.ItemId || i.Id || i.Guid, Name: i.Name || 'Unnamed Library' };
+                }).filter(function (i) { return i.Id; });
+            }).catch(function () { _libraries = []; });
+        }
+
+        function loadBuilderMetadata() {
+            return ApiClient.getJSON(ApiClient.getUrl('CollectionManager/ScheduledCollections/Metadata')).then(function (data) {
+                _metadata = data || _metadata;
+                if (_metadata.Libraries && _metadata.Libraries.length) {
+                    _libraries = _metadata.Libraries.map(function (i) { return { Id: i.Id, Name: i.Name }; });
+                }
+            }).catch(function () { /* keep library fallback */ });
+        }
+
+        function apiPost(path, data) {
+            return ApiClient.ajax({
+                type: 'POST',
+                url: ApiClient.getUrl(path),
+                data: JSON.stringify(data || {}),
+                contentType: 'application/json'
+            });
         }
 
         function presetDefinition(kind) {
             switch (kind) {
                 case 'halloween':
-                    return { Enabled: true, Name: 'Halloween Movies', ContentType: 'Movies', IncludedGenres: ['Horror'], ActiveStart: '10-01', ActiveEnd: '10-31', RemoveWhenInactive: true };
+                    return { Enabled: true, Name: 'Halloween Movies', ContentType: 'Movies', IncludedGenres: ['Horror'], ActiveStart: '10-01', ActiveEnd: '10-31', RemoveWhenInactive: true, MatchMode: 'All' };
                 case 'holiday':
-                    return { Enabled: true, Name: 'Holiday Movies', ContentType: 'Movies', IncludedGenres: ['Christmas', 'Holiday'], ActiveStart: '12-01', ActiveEnd: '01-05', RemoveWhenInactive: true };
+                    return { Enabled: true, Name: 'Holiday Movies', ContentType: 'Movies', IncludedGenres: ['Christmas', 'Holiday'], ActiveStart: '12-01', ActiveEnd: '01-05', RemoveWhenInactive: true, MatchMode: 'Any' };
                 case 'friday-action':
-                    return { Enabled: true, Name: 'Friday Action Night', ContentType: 'Movies', IncludedGenres: ['Action'], ActiveDaysOfWeek: ['Friday'], MaxItems: 50, RemoveWhenInactive: true };
+                    return { Enabled: true, Name: 'Friday Action Night', ContentType: 'Movies', IncludedGenres: ['Action'], ActiveDaysOfWeek: ['Friday'], MaxItems: 50, RemoveWhenInactive: true, MatchMode: 'All' };
+                case 'kids':
+                    return { Enabled: true, Name: 'Kids Collection', ContentType: 'Both', IncludedOfficialRatings: ['G', 'PG', 'TV-Y', 'TV-Y7'], RemoveWhenInactive: false, MatchMode: 'Any' };
+                case 'new-releases':
+                    return { Enabled: true, Name: 'New Releases', ContentType: 'Movies', IncludedYears: [String(new Date().getFullYear()), String(new Date().getFullYear() - 1)], MaxItems: 75, RemoveWhenInactive: false, MatchMode: 'Any' };
+                case 'unwatched':
+                    return { Enabled: true, Name: 'Unwatched Movies', ContentType: 'Movies', PlayState: 'Unplayed', MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'favorites':
+                    return { Enabled: true, Name: 'Favorites', ContentType: 'Both', IsFavorite: 'Yes', RemoveWhenInactive: false, MatchMode: 'All' };
+                case '4k':
+                    return { Enabled: true, Name: '4K Movies', ContentType: 'Movies', IncludedTags: ['4K'], RemoveWhenInactive: false, MatchMode: 'All' };
                 default:
-                    return { Enabled: true, Name: 'New Scheduled Collection', ContentType: 'Both', RemoveWhenInactive: true };
+                    return { Enabled: true, Name: 'New Custom Collection', ContentType: 'Both', RemoveWhenInactive: true, MatchMode: 'All' };
             }
         }
 
@@ -50,9 +111,46 @@ define([
             return 'always';
         }
 
+        function optionList(values) {
+            return (values || []).map(function (v) { return '<option value="' + escAttr(v) + '"></option>'; }).join('');
+        }
+
+        function tokenField(field, label, values, suggestions, placeholder) {
+            var id = 'cmList' + field;
+            var chips = (values || []).map(function (v) {
+                return '<span class="cmTokenChip" data-field="' + field + '" data-value="' + escAttr(v) + '" style="display:inline-flex;align-items:center;gap:.35em;margin:.2em;padding:.25em .55em;border-radius:999px;background:rgba(255,255,255,.12);">'
+                    + escText(v) + '<button is="emby-button" type="button" class="cmRemoveToken" title="Remove" style="min-width:0;padding:.1em .35em;"><span>×</span></button></span>';
+            }).join('');
+            return '<div class="cmTokenField" data-field="' + field + '">'
+                + '<div class="fieldDescription" style="font-weight:600;margin-bottom:.25em;">' + escText(label) + '</div>'
+                + '<div class="cmTokenChips">' + chips + '</div>'
+                + '<div style="display:flex;gap:.35em;align-items:center;">'
+                + '<input class="cmTokenInput" data-field="' + field + '" list="' + id + '" type="text" placeholder="' + escAttr(placeholder || 'Add value') + '" />'
+                + '<datalist id="' + id + '">' + optionList(suggestions) + '</datalist>'
+                + '<button is="emby-button" type="button" class="cmAddToken" data-field="' + field + '"><span>Add</span></button>'
+                + '</div></div>';
+        }
+
+        function monthOptions(selected) {
+            return monthNames.map(function (m, i) {
+                var n = i + 1;
+                return '<option value="' + n + '"' + (n === selected ? ' selected' : '') + '>' + m + '</option>';
+            }).join('');
+        }
+
+        function dayOptions(selected) {
+            var html = '';
+            for (var d = 1; d <= 31; d++) html += '<option value="' + d + '"' + (d === selected ? ' selected' : '') + '>' + d + '</option>';
+            return html;
+        }
+
         function scheduleControls(def) {
             var kind = scheduleKind(def);
             var days = def.ActiveDaysOfWeek || [];
+            var startMonth = datePart(def.ActiveStart, 0, 10);
+            var startDay = datePart(def.ActiveStart, 1, 1);
+            var endMonth = datePart(def.ActiveEnd, 0, 10);
+            var endDay = datePart(def.ActiveEnd, 1, 31);
             var dayHtml = dayNames.map(function (day) {
                 var checked = days.indexOf(day) >= 0 ? ' checked="checked"' : '';
                 return '<label style="display:inline-block;margin-right:.75em;margin-top:.35em;">'
@@ -60,44 +158,75 @@ define([
                     + '<span>' + day.slice(0, 3) + '</span></label>';
             }).join('');
 
-            return '<div style="margin-top:.75em;">'
-                + '<label>Schedule<br /><select class="cmSchedKind">'
-                + '<option value="always"' + (kind === 'always' ? ' selected' : '') + '>Always active</option>'
-                + '<option value="dates"' + (kind === 'dates' ? ' selected' : '') + '>Season/date range</option>'
+            return '<div style="margin-top:1em;">'
+                + '<h4 style="margin:.25em 0;">Schedule</h4>'
+                + '<label>When should it appear?<br /><select class="cmSchedKind">'
+                + '<option value="always"' + (kind === 'always' ? ' selected' : '') + '>Always</option>'
+                + '<option value="dates"' + (kind === 'dates' ? ' selected' : '') + '>Season / date range</option>'
                 + '<option value="days"' + (kind === 'days' ? ' selected' : '') + '>Days of week</option>'
                 + '</select></label>'
-                + '<div class="cmSchedDates" style="margin-top:.5em;' + (kind === 'dates' ? '' : 'display:none;') + '">'
-                + '<label>Start MM-DD<br /><input class="cmSchedStart" type="text" value="' + escAttr(def.ActiveStart || '') + '" placeholder="10-01" /></label> '
-                + '<label>End MM-DD<br /><input class="cmSchedEnd" type="text" value="' + escAttr(def.ActiveEnd || '') + '" placeholder="10-31" /></label>'
+                + '<div class="cmSchedDates" style="margin-top:.65em;' + (kind === 'dates' ? '' : 'display:none;') + '">'
+                + '<label>Start<br /><select class="cmSchedStartMonth">' + monthOptions(startMonth) + '</select></label> '
+                + '<label><span style="visibility:hidden;">Day</span><br /><select class="cmSchedStartDay">' + dayOptions(startDay) + '</select></label> '
+                + '<label>End<br /><select class="cmSchedEndMonth">' + monthOptions(endMonth) + '</select></label> '
+                + '<label><span style="visibility:hidden;">Day</span><br /><select class="cmSchedEndDay">' + dayOptions(endDay) + '</select></label>'
                 + '</div>'
-                + '<div class="cmSchedDays" style="margin-top:.5em;' + (kind === 'days' ? '' : 'display:none;') + '">' + dayHtml + '</div>'
+                + '<div class="cmSchedDays" style="margin-top:.65em;' + (kind === 'days' ? '' : 'display:none;') + '">' + dayHtml + '</div>'
                 + '</div>';
+        }
+
+        function renderLibraryCheckboxes(def) {
+            var selected = (def.SourceLibraryIds || []).reduce(function (acc, v) { acc[v] = true; return acc; }, {});
+            return (_libraries || []).map(function (lib) {
+                var checked = selected[lib.Id] ? ' checked="checked"' : '';
+                return '<label class="emby-checkbox-label" style="display:inline-block;margin-right:.75em;">'
+                    + '<input is="emby-checkbox" type="checkbox" class="cmSchedLibrary" value="' + escAttr(lib.Id) + '"' + checked + ' />'
+                    + '<span>' + escText(lib.Name) + '</span></label>';
+            }).join('') || '<div class="fieldDescription">No libraries found. The collection will scan all libraries.</div>';
         }
 
         function collectionCardHtml(def, index) {
             def = def || presetDefinition('custom');
-            return '<div class="cmScheduledCard" data-index="' + index + '" style="border:1px solid #444;border-radius:8px;padding:1em;margin:0 0 1em 0;background:rgba(255,255,255,.04);">'
+            var noLimit = !def.MaxItems || def.MaxItems <= 0;
+            return '<div class="cmScheduledCard" data-index="' + index + '" style="border:1px solid #444;border-radius:10px;padding:1em;margin:0 0 1em 0;background:rgba(255,255,255,.04);">'
                 + '<div style="display:flex;justify-content:space-between;gap:1em;align-items:center;flex-wrap:wrap;">'
                 + '<label><input is="emby-checkbox" type="checkbox" class="cmSchedEnabled"' + (def.Enabled !== false ? ' checked="checked"' : '') + ' /><span>Enabled</span></label>'
+                + '<div style="display:flex;gap:.5em;flex-wrap:wrap;">'
+                + '<button is="emby-button" type="button" class="cmPreviewScheduled"><span>Preview items</span></button>'
+                + '<button is="emby-button" type="button" class="cmRunScheduled"><span>Save & run now</span></button>'
+                + '<button is="emby-button" type="button" class="cmDuplicateScheduled"><span>Duplicate</span></button>'
                 + '<button is="emby-button" type="button" class="cmRemoveScheduled"><span>Remove</span></button>'
-                + '</div>'
+                + '</div></div>'
                 + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75em;margin-top:.75em;">'
                 + '<label>Collection name<br /><input class="cmSchedName" type="text" value="' + escAttr(def.Name || '') + '" placeholder="Halloween Movies" /></label>'
-                + '<label>Type<br /><select class="cmSchedContentType">'
-                + '<option value="Both"' + ((def.ContentType || 'Both') === 'Both' ? ' selected' : '') + '>Movies + TV</option>'
+                + '<label>Include<br /><select class="cmSchedContentType">'
+                + '<option value="Both"' + ((def.ContentType || 'Both') === 'Both' ? ' selected' : '') + '>Movies + TV Shows</option>'
                 + '<option value="Movies"' + (def.ContentType === 'Movies' ? ' selected' : '') + '>Movies only</option>'
                 + '<option value="TvShows"' + (def.ContentType === 'TvShows' ? ' selected' : '') + '>TV shows only</option>'
                 + '</select></label>'
-                + '<label>Max items<br /><input class="cmSchedMaxItems" type="number" min="0" value="' + escAttr(def.MaxItems || 0) + '" /></label>'
+                + '<label>Match filters<br /><select class="cmSchedMatchMode">'
+                + '<option value="All"' + ((def.MatchMode || 'All') === 'All' ? ' selected' : '') + '>All filters</option>'
+                + '<option value="Any"' + (def.MatchMode === 'Any' ? ' selected' : '') + '>Any filter</option>'
+                + '</select></label>'
+                + '<label><span>Item limit</span><br /><input class="cmSchedMaxItems" type="number" min="1" value="' + escAttr(def.MaxItems || '') + '"' + (noLimit ? ' disabled="disabled"' : '') + ' placeholder="No limit" /></label>'
+                + '<label style="align-self:end;"><input is="emby-checkbox" type="checkbox" class="cmSchedNoLimit"' + (noLimit ? ' checked="checked"' : '') + ' /><span>No limit</span></label>'
                 + '</div>'
-                + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.75em;margin-top:.75em;">'
-                + '<label>Genres<br /><input class="cmSchedGenres" type="text" value="' + escAttr(joinCsv(def.IncludedGenres)) + '" placeholder="Horror, Action" /></label>'
-                + '<label>Studios<br /><input class="cmSchedStudios" type="text" value="' + escAttr(joinCsv(def.IncludedStudios)) + '" placeholder="Disney, Netflix" /></label>'
-                + '<label>Tags<br /><input class="cmSchedTags" type="text" value="' + escAttr(joinCsv(def.IncludedTags)) + '" placeholder="Kids, 4K" /></label>'
-                + '<label>Years<br /><input class="cmSchedYears" type="text" value="' + escAttr(joinCsv(def.IncludedYears)) + '" placeholder="2023, 2024" /></label>'
+                + '<div style="margin-top:.9em;"><h4 style="margin:.25em 0;">Libraries</h4>' + renderLibraryCheckboxes(def) + '</div>'
+                + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.9em;margin-top:.9em;">'
+                + tokenField('Genres', 'Genres', def.IncludedGenres, _metadata.Genres, 'Horror')
+                + tokenField('Studios', 'Studios / services', def.IncludedStudios, _metadata.Studios, 'Netflix')
+                + tokenField('Tags', 'Tags', def.IncludedTags, _metadata.Tags, '4K')
+                + tokenField('Years', 'Years', def.IncludedYears, _metadata.Years, String(new Date().getFullYear()))
+                + tokenField('Ratings', 'Ratings', def.IncludedOfficialRatings, _metadata.Ratings, 'PG')
+                + '</div>'
+                + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.75em;margin-top:.9em;">'
+                + '<label>Watched state<br /><select class="cmSchedPlayState"><option value="Any"' + ((def.PlayState || 'Any') === 'Any' ? ' selected' : '') + '>Any</option><option value="Played"' + (def.PlayState === 'Played' ? ' selected' : '') + '>Watched only</option><option value="Unplayed"' + (def.PlayState === 'Unplayed' ? ' selected' : '') + '>Unwatched only</option></select></label>'
+                + '<label>Favorites<br /><select class="cmSchedFavorite"><option value="Any"' + ((def.IsFavorite || 'Any') === 'Any' ? ' selected' : '') + '>Any</option><option value="Yes"' + (def.IsFavorite === 'Yes' ? ' selected' : '') + '>Favorites only</option><option value="No"' + (def.IsFavorite === 'No' ? ' selected' : '') + '>Not favorites</option></select></label>'
+                + '<label>Series status<br /><select class="cmSchedSeriesStatus"><option value="Any"' + ((def.SeriesStatus || 'Any') === 'Any' ? ' selected' : '') + '>Any</option><option value="Continuing"' + (def.SeriesStatus === 'Continuing' ? ' selected' : '') + '>Continuing</option><option value="Ended"' + (def.SeriesStatus === 'Ended' ? ' selected' : '') + '>Ended</option></select></label>'
                 + '</div>'
                 + scheduleControls(def)
                 + '<label style="display:block;margin-top:.75em;"><input is="emby-checkbox" type="checkbox" class="cmSchedRemoveInactive"' + (def.RemoveWhenInactive !== false ? ' checked="checked"' : '') + ' /><span>Remove this collection when inactive</span></label>'
+                + '<div class="cmPreviewResult fieldDescription" style="margin-top:.9em;"></div>'
                 + '</div>';
         }
 
@@ -105,43 +234,65 @@ define([
             var defs = definitions || [];
             divScheduledEditor.innerHTML = defs.length
                 ? defs.map(collectionCardHtml).join('')
-                : '<div class="fieldDescription" style="margin-bottom:1em;">No scheduled collections yet. Pick a preset and click <b>Add collection</b>.</div>';
+                : '<div class="fieldDescription" style="margin-bottom:1em;">No custom collections yet. Pick a preset and click <b>Add collection</b>.</div>';
+        }
+
+        function tokenValues(card, field) {
+            return Array.prototype.slice.call(card.querySelectorAll('.cmTokenChip[data-field="' + field + '"]'))
+                .map(function (el) { return el.getAttribute('data-value'); })
+                .filter(function (v) { return v; });
+        }
+
+        function selectedLibraries(card) {
+            return Array.prototype.slice.call(card.querySelectorAll('.cmSchedLibrary'))
+                .filter(function (cb) { return cb.checked; })
+                .map(function (cb) { return cb.value; });
+        }
+
+        function readCard(card) {
+            var kind = card.querySelector('.cmSchedKind').value;
+            var noLimit = card.querySelector('.cmSchedNoLimit').checked;
+            var def = {
+                Enabled: card.querySelector('.cmSchedEnabled').checked,
+                Name: card.querySelector('.cmSchedName').value.trim(),
+                ContentType: card.querySelector('.cmSchedContentType').value,
+                SourceLibraryIds: selectedLibraries(card),
+                IncludedGenres: tokenValues(card, 'Genres'),
+                IncludedStudios: tokenValues(card, 'Studios'),
+                IncludedYears: tokenValues(card, 'Years'),
+                IncludedOfficialRatings: tokenValues(card, 'Ratings'),
+                IncludedTags: tokenValues(card, 'Tags'),
+                PlayState: card.querySelector('.cmSchedPlayState').value,
+                IsFavorite: card.querySelector('.cmSchedFavorite').value,
+                SeriesStatus: card.querySelector('.cmSchedSeriesStatus').value,
+                MatchMode: card.querySelector('.cmSchedMatchMode').value,
+                MaxItems: noLimit ? 0 : (parseInt(card.querySelector('.cmSchedMaxItems').value || '0', 10) || 0),
+                RemoveWhenInactive: card.querySelector('.cmSchedRemoveInactive').checked
+            };
+
+            if (kind === 'dates') {
+                def.ActiveStart = makeDate(card.querySelector('.cmSchedStartMonth').value, card.querySelector('.cmSchedStartDay').value);
+                def.ActiveEnd = makeDate(card.querySelector('.cmSchedEndMonth').value, card.querySelector('.cmSchedEndDay').value);
+                def.ActiveDaysOfWeek = [];
+            } else if (kind === 'days') {
+                def.ActiveStart = '';
+                def.ActiveEnd = '';
+                def.ActiveDaysOfWeek = Array.prototype.slice.call(card.querySelectorAll('.cmSchedDay'))
+                    .filter(function (cb) { return cb.checked; })
+                    .map(function (cb) { return cb.value; });
+            } else {
+                def.ActiveStart = '';
+                def.ActiveEnd = '';
+                def.ActiveDaysOfWeek = [];
+            }
+            return def;
         }
 
         function readScheduledCollectionsFromEditor() {
-            return Array.prototype.slice.call(divScheduledEditor.querySelectorAll('.cmScheduledCard')).map(function (card) {
-                var kind = card.querySelector('.cmSchedKind').value;
-                var def = {
-                    Enabled: card.querySelector('.cmSchedEnabled').checked,
-                    Name: card.querySelector('.cmSchedName').value.trim(),
-                    ContentType: card.querySelector('.cmSchedContentType').value,
-                    IncludedGenres: splitCsv(card.querySelector('.cmSchedGenres').value),
-                    IncludedStudios: splitCsv(card.querySelector('.cmSchedStudios').value),
-                    IncludedYears: splitCsv(card.querySelector('.cmSchedYears').value),
-                    IncludedTags: splitCsv(card.querySelector('.cmSchedTags').value),
-                    MaxItems: parseInt(card.querySelector('.cmSchedMaxItems').value || '0', 10) || 0,
-                    RemoveWhenInactive: card.querySelector('.cmSchedRemoveInactive').checked
-                };
-                if (kind === 'dates') {
-                    def.ActiveStart = card.querySelector('.cmSchedStart').value.trim();
-                    def.ActiveEnd = card.querySelector('.cmSchedEnd').value.trim();
-                    def.ActiveDaysOfWeek = [];
-                } else if (kind === 'days') {
-                    def.ActiveStart = '';
-                    def.ActiveEnd = '';
-                    def.ActiveDaysOfWeek = Array.prototype.slice.call(card.querySelectorAll('.cmSchedDay'))
-                        .filter(function (cb) { return cb.checked; })
-                        .map(function (cb) { return cb.value; });
-                } else {
-                    def.ActiveStart = '';
-                    def.ActiveEnd = '';
-                    def.ActiveDaysOfWeek = [];
-                }
-                return def;
-            }).filter(function (def) { return def.Name.length > 0; });
+            return Array.prototype.slice.call(divScheduledEditor.querySelectorAll('.cmScheduledCard'))
+                .map(readCard)
+                .filter(function (def) { return def.Name.length > 0; });
         }
-
-        function syncScheduledJson() { }
 
         function applyConfigToForm(cfg) {
             form.elements.chkEnableDynamic.checked        = !!cfg.EnableDynamicUserPlaylists;
@@ -150,8 +301,10 @@ define([
             form.elements.chkEnableUniverses.checked      = !!cfg.EnableTvUniversePlaylists;
             form.elements.chkUpdatePlaylistsImage.checked = !!cfg.UpdatePlaylistsLibraryImage;
             form.elements.chkEnableStreaming.checked      = !!cfg.EnableStreamingServiceCollections;
+            form.elements.chkRepairManagedCollections.checked = (cfg.RepairManagedCollections !== false);
             form.elements.chkIncludeMovies.checked        = !!cfg.IncludeMovies;
             form.elements.chkIncludeTvShows.checked       = !!cfg.IncludeTvShows;
+            renderCheckboxList(divStreamingLibraries, _libraries, cfg.StreamingLibraryIds || [], 'streamingLibrary');
             form.elements.chkUpdateCollectionsImage.checked = !!cfg.UpdateCollectionsLibraryImage;
             form.elements.chkEnableScheduledCollections.checked = !!cfg.EnableScheduledCollections;
             renderScheduledCollections(cfg.ScheduledCollections || []);
@@ -165,8 +318,10 @@ define([
             cfg.EnableTvUniversePlaylists        = form.elements.chkEnableUniverses.checked;
             cfg.UpdatePlaylistsLibraryImage      = form.elements.chkUpdatePlaylistsImage.checked;
             cfg.EnableStreamingServiceCollections = form.elements.chkEnableStreaming.checked;
+            cfg.RepairManagedCollections          = form.elements.chkRepairManagedCollections.checked;
             cfg.IncludeMovies                    = form.elements.chkIncludeMovies.checked;
             cfg.IncludeTvShows                   = form.elements.chkIncludeTvShows.checked;
+            cfg.StreamingLibraryIds              = readCheckboxList(divStreamingLibraries);
             cfg.UpdateCollectionsLibraryImage    = form.elements.chkUpdateCollectionsImage.checked;
             cfg.EnableScheduledCollections       = form.elements.chkEnableScheduledCollections.checked;
             cfg.ScheduledCollections             = readScheduledCollectionsFromEditor();
@@ -174,38 +329,104 @@ define([
             return cfg;
         }
 
-        function onSubmit(ev) {
-            ev.preventDefault();
+        function saveConfig() {
             loading.show();
-            ApiClient.getPluginConfiguration(pluginUniqueId).then(function (cfg) {
-                try { readConfigFromForm(cfg); syncScheduledJson(); }
-                catch (err) {
-                    loading.hide();
-                    Dashboard.alert({ title: 'Invalid scheduled collections', message: err.message || String(err) });
-                    return;
-                }
-                ApiClient.updatePluginConfiguration(pluginUniqueId, cfg).then(function (result) {
+            return ApiClient.getPluginConfiguration(pluginUniqueId).then(function (cfg) {
+                readConfigFromForm(cfg);
+                return ApiClient.updatePluginConfiguration(pluginUniqueId, cfg).then(function (result) {
                     Dashboard.processPluginConfigurationUpdateResult(result);
                     loading.hide();
-                    Dashboard.alert('Settings saved. The Collection Manager task has been queued.');
+                    return cfg;
                 }, function () {
                     loading.hide();
                     Dashboard.alert({ title: 'Error', message: 'Failed to save settings.' });
+                    throw new Error('Failed to save settings.');
                 });
             }, function () {
                 loading.hide();
                 Dashboard.alert({ title: 'Error', message: 'Failed to load current settings.' });
+                throw new Error('Failed to load current settings.');
             });
+        }
+
+        function onSubmit(ev) {
+            ev.preventDefault();
+            saveConfig().then(function () {
+                Dashboard.alert('Settings saved. The Collection Manager task has been queued.');
+            }).catch(function () {});
             return false;
         }
 
+        function addToken(card, field) {
+            var input = card.querySelector('.cmTokenInput[data-field="' + field + '"]');
+            var value = (input.value || '').trim();
+            if (!value) return;
+            var existing = tokenValues(card, field).map(function (v) { return v.toLowerCase(); });
+            if (existing.indexOf(value.toLowerCase()) >= 0) { input.value = ''; return; }
+            var chips = card.querySelector('.cmTokenField[data-field="' + field + '"] .cmTokenChips');
+            chips.insertAdjacentHTML('beforeend', '<span class="cmTokenChip" data-field="' + field + '" data-value="' + escAttr(value) + '" style="display:inline-flex;align-items:center;gap:.35em;margin:.2em;padding:.25em .55em;border-radius:999px;background:rgba(255,255,255,.12);">' + escText(value) + '<button is="emby-button" type="button" class="cmRemoveToken" title="Remove" style="min-width:0;padding:.1em .35em;"><span>×</span></button></span>');
+            input.value = '';
+        }
+
+        function setPreview(card, html) {
+            card.querySelector('.cmPreviewResult').innerHTML = html;
+        }
+
+        function previewCard(card) {
+            var def = readCard(card);
+            if (!def.Name) { setPreview(card, 'Name the collection first.'); return; }
+            setPreview(card, 'Previewing…');
+            apiPost('CollectionManager/ScheduledCollections/Preview', def).then(function (r) {
+                var data = typeof r === 'string' ? JSON.parse(r || '{}') : r;
+                var items = data.Items || [];
+                var sample = items.map(function (i) { return escText(i.Name + (i.Year ? ' (' + i.Year + ')' : '')); }).join(', ');
+                setPreview(card, '<b>' + (data.Count || 0) + ' item(s)</b> matched' + (sample ? '<br />' + sample : ''));
+            }, function () {
+                setPreview(card, 'Preview failed. Save the settings and try again.');
+            });
+        }
+
+        function runCard(card) {
+            var def = readCard(card);
+            saveConfig().then(function () {
+                setPreview(card, 'Running…');
+                return apiPost('CollectionManager/ScheduledCollections/Run', def);
+            }).then(function (r) {
+                var data = typeof r === 'string' ? JSON.parse(r || '{}') : r;
+                setPreview(card, escText(data.Message || 'Collection run queued.'));
+            }, function () {
+                setPreview(card, 'Run failed.');
+            });
+        }
+
         divScheduledEditor.addEventListener('click', function (ev) {
-            var removeButton = ev.target.closest ? ev.target.closest('.cmRemoveScheduled') : null;
-            if (!removeButton) return;
-            var card = removeButton.closest('.cmScheduledCard');
-            if (card) card.parentNode.removeChild(card);
-            syncScheduledJson();
+            var card = ev.target.closest ? ev.target.closest('.cmScheduledCard') : null;
+            if (ev.target.closest && ev.target.closest('.cmRemoveToken')) {
+                var chip = ev.target.closest('.cmTokenChip');
+                if (chip) chip.parentNode.removeChild(chip);
+                return;
+            }
+            if (ev.target.closest && ev.target.closest('.cmAddToken')) {
+                var btn = ev.target.closest('.cmAddToken');
+                addToken(card, btn.getAttribute('data-field'));
+                return;
+            }
+            if (!card) return;
+            if (ev.target.closest('.cmRemoveScheduled')) {
+                card.parentNode.removeChild(card);
+            } else if (ev.target.closest('.cmDuplicateScheduled')) {
+                var defs = readScheduledCollectionsFromEditor();
+                var copy = JSON.parse(JSON.stringify(readCard(card)));
+                copy.Name = (copy.Name || 'Custom Collection') + ' Copy';
+                defs.push(copy);
+                renderScheduledCollections(defs);
+            } else if (ev.target.closest('.cmPreviewScheduled')) {
+                previewCard(card);
+            } else if (ev.target.closest('.cmRunScheduled')) {
+                runCard(card);
+            }
         });
+
         divScheduledEditor.addEventListener('change', function (ev) {
             if (ev.target.classList && ev.target.classList.contains('cmSchedKind')) {
                 var card = ev.target.closest('.cmScheduledCard');
@@ -213,20 +434,50 @@ define([
                 card.querySelector('.cmSchedDates').style.display = kind === 'dates' ? '' : 'none';
                 card.querySelector('.cmSchedDays').style.display = kind === 'days' ? '' : 'none';
             }
-            syncScheduledJson();
+            if (ev.target.classList && ev.target.classList.contains('cmSchedNoLimit')) {
+                var max = ev.target.closest('.cmScheduledCard').querySelector('.cmSchedMaxItems');
+                max.disabled = ev.target.checked;
+                if (ev.target.checked) max.value = '';
+            }
         });
-        divScheduledEditor.addEventListener('input', syncScheduledJson);
+
+        divScheduledEditor.addEventListener('keydown', function (ev) {
+            if (ev.key === 'Enter' && ev.target.classList && ev.target.classList.contains('cmTokenInput')) {
+                ev.preventDefault();
+                addToken(ev.target.closest('.cmScheduledCard'), ev.target.getAttribute('data-field'));
+            }
+        });
+
         btnAddScheduledCollection.addEventListener('click', function () {
             var defs = readScheduledCollectionsFromEditor();
             defs.push(presetDefinition(selScheduledPreset.value));
             renderScheduledCollections(defs);
             form.elements.chkEnableScheduledCollections.checked = true;
         });
+
+        btnRunAllScheduledCollections.addEventListener('click', function () {
+            saveConfig().then(function () {
+                loading.show();
+                return apiPost('CollectionManager/ScheduledCollections/RunTask', {});
+            }).then(function (r) {
+                loading.hide();
+                var data = typeof r === 'string' ? JSON.parse(r || '{}') : r;
+                Dashboard.alert(data.Message || 'Collection Manager task queued.');
+            }, function () {
+                loading.hide();
+                Dashboard.alert({ title: 'Error', message: 'Failed to queue Collection Manager task.' });
+            });
+        });
+
         form.addEventListener('submit', onSubmit);
+
         view.addEventListener('viewshow', function () {
             loading.show();
-            ApiClient.getPluginConfiguration(pluginUniqueId).then(function (cfg) {
-                applyConfigToForm(cfg);
+            Promise.all([
+                ApiClient.getPluginConfiguration(pluginUniqueId),
+                loadLibraries().then(loadBuilderMetadata)
+            ]).then(function (results) {
+                applyConfigToForm(results[0]);
                 loading.hide();
             }, function () {
                 loading.hide();
