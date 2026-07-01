@@ -305,7 +305,7 @@ define([
             var id = 'cmList' + field + '_' + index;
             var chips = (values || []).map(function (v) {
                 return '<span class="cmTokenChip" data-field="' + field + '" data-value="' + escAttr(v) + '" style="display:inline-flex;align-items:center;gap:.35em;margin:.2em;padding:.25em .55em;border-radius:999px;background:rgba(255,255,255,.12);">'
-                    + escText(v) + '<button is="emby-button" type="button" class="cmRemoveToken" title="Remove" style="min-width:0;padding:.1em .35em;"><span>×</span></button></span>';
+                    + escText(v) + '<button type="button" class="cmButton cmRemoveToken" title="Remove" style="min-height:0;min-width:0;padding:.1em .45em !important;">×</button></span>';
             }).join('');
             return '<div class="cmTokenField" data-field="' + field + '">'
                 + '<div class="fieldDescription" style="font-weight:600;margin-bottom:.25em;">' + escText(label) + '</div>'
@@ -313,7 +313,7 @@ define([
                 + '<div style="display:flex;gap:.35em;align-items:center;">'
                 + '<input class="cmTokenInput" data-field="' + field + '" list="' + id + '" type="text" placeholder="' + escAttr(placeholder || 'Add value') + '" />'
                 + '<datalist id="' + id + '">' + optionList(suggestions, '') + '</datalist>'
-                + '<button is="emby-button" type="button" class="cmAddToken" data-field="' + field + '"><span>Add</span></button>'
+                + '<button type="button" class="cmButton cmAddToken" data-field="' + field + '">Add</button>'
                 + '</div><div class="fieldDescription">Suggestions search as you type and are limited to 25.</div></div>';
         }
 
@@ -394,10 +394,10 @@ define([
                 + '<div style="display:flex;justify-content:space-between;gap:1em;align-items:center;flex-wrap:wrap;">'
                 + '<label><input is="emby-checkbox" type="checkbox" class="cmSchedEnabled"' + (def.Enabled !== false ? ' checked="checked"' : '') + ' /><span>Enabled</span></label>'
                 + '<div style="display:flex;gap:.5em;flex-wrap:wrap;">'
-                + '<button is="emby-button" type="button" class="cmPreviewScheduled"><span>Preview First</span></button>'
-                + '<button is="emby-button" type="button" class="cmRunScheduled raised"><span>Create Collection</span></button>'
-                + '<button is="emby-button" type="button" class="cmDuplicateScheduled"><span>Duplicate</span></button>'
-                + '<button is="emby-button" type="button" class="cmRemoveScheduled"><span>Remove</span></button>'
+                + '<button type="button" class="cmButton cmPreviewScheduled">Preview First</button>'
+                + '<button type="button" class="cmButton cmButtonPrimary cmRunScheduled">Create Collection</button>'
+                + '<button type="button" class="cmButton cmDuplicateScheduled">Duplicate</button>'
+                + '<button type="button" class="cmButton cmRemoveScheduled">Remove</button>'
                 + '</div></div>'
                 + '<input type="hidden" class="cmSchedSortBy" value="' + escAttr(def.SortBy || '') + '" />'
                 + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.75em;margin-top:.75em;">'
@@ -478,7 +478,7 @@ define([
             var rows = defs.map(function (def, index) {
                 return '<tr data-index="' + index + '">'
                     + '<td>' + (def.Enabled === false ? '—' : '✓') + '</td>'
-                    + '<td><button is="emby-button" type="button" class="cmOverviewEdit" data-index="' + index + '" style="min-width:0;padding:.2em .35em;"><span>' + escText(def.Name || 'Unnamed') + '</span></button></td>'
+                    + '<td><button type="button" class="cmButton cmOverviewEdit" data-index="' + index + '" style="min-height:0;min-width:0;padding:.2em .55em !important;">' + escText(def.Name || 'Unnamed') + '</button></td>'
                     + '<td>' + escText(describeSchedule(def)) + '</td>'
                     + '<td>' + escText(describeFilters(def)) + '</td>'
                     + '<td class="cmOverviewPreview" data-index="' + index + '">Preview not run</td>'
@@ -629,7 +629,7 @@ define([
             var existing = tokenValues(card, field).map(function (v) { return v.toLowerCase(); });
             if (existing.indexOf(value.toLowerCase()) >= 0) { input.value = ''; return; }
             var chips = card.querySelector('.cmTokenField[data-field="' + field + '"] .cmTokenChips');
-            chips.insertAdjacentHTML('beforeend', '<span class="cmTokenChip" data-field="' + field + '" data-value="' + escAttr(value) + '" style="display:inline-flex;align-items:center;gap:.35em;margin:.2em;padding:.25em .55em;border-radius:999px;background:rgba(255,255,255,.12);">' + escText(value) + '<button is="emby-button" type="button" class="cmRemoveToken" title="Remove" style="min-width:0;padding:.1em .35em;"><span>×</span></button></span>');
+            chips.insertAdjacentHTML('beforeend', '<span class="cmTokenChip" data-field="' + field + '" data-value="' + escAttr(value) + '" style="display:inline-flex;align-items:center;gap:.35em;margin:.2em;padding:.25em .55em;border-radius:999px;background:rgba(255,255,255,.12);">' + escText(value) + '<button type="button" class="cmButton cmRemoveToken" title="Remove" style="min-height:0;min-width:0;padding:.1em .45em !important;">×</button></span>');
             input.value = '';
         }
 

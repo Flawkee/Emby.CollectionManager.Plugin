@@ -91,7 +91,11 @@ namespace CollectionManager.Plugin
             yield return new PluginPageInfo
             {
                 Name                 = Name,
-                EmbeddedResourcePath = GetType().Namespace + ".Configuration.adminconfigpage.html"
+                EmbeddedResourcePath = GetType().Namespace + ".Configuration.adminconfigpage.html",
+                EnableInMainMenu     = true,
+                MenuSection          = "advanced",
+                MenuIcon             = "playlist_add_check",
+                DisplayName          = Name
             };
             yield return new PluginPageInfo
             {

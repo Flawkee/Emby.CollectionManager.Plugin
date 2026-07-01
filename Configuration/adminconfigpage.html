@@ -2,6 +2,72 @@
 <html>
 <head>
     <title>Collection Manager</title>
+    <style>
+        .cmAdminPage {
+            color-scheme: light dark;
+        }
+
+        .cmAdminPage .cmButton {
+            appearance: none !important;
+            background: #3a3a3a !important;
+            border: 1px solid rgba(255, 255, 255, .18) !important;
+            border-radius: 999px !important;
+            color: #f2f2f2 !important;
+            cursor: pointer;
+            font: inherit;
+            font-weight: 600;
+            min-height: 2.7em;
+            padding: .55em 1.25em !important;
+            text-align: center;
+        }
+
+        .cmAdminPage .cmButton:hover,
+        .cmAdminPage .cmButton:focus-visible {
+            background: #4a4a4a !important;
+            border-color: rgba(255, 255, 255, .32) !important;
+        }
+
+        .cmAdminPage .cmButtonPrimary {
+            background: #454545 !important;
+        }
+
+        .cmAdminPage .cmButtonBlock {
+            border-radius: 0 !important;
+            width: 100%;
+        }
+
+        .cmAdminPage .cmButton:disabled,
+        .cmAdminPage .cmButton.is-disabled {
+            background: #2f2f2f !important;
+            color: rgba(255, 255, 255, .55) !important;
+            cursor: default;
+            opacity: 1 !important;
+        }
+
+        .cmAdminPage input:not([is]),
+        .cmAdminPage select:not([is]),
+        .cmAdminPage textarea:not([is]) {
+            background: #303030 !important;
+            border: 1px solid rgba(255, 255, 255, .22) !important;
+            border-radius: 4px;
+            color: #f2f2f2 !important;
+            padding: .45em .55em;
+        }
+
+        .cmAdminPage input:not([is])::placeholder,
+        .cmAdminPage textarea:not([is])::placeholder {
+            color: rgba(255, 255, 255, .62) !important;
+            opacity: 1;
+        }
+
+        .cmAdminPage input:not([is]):disabled,
+        .cmAdminPage select:not([is]):disabled,
+        .cmAdminPage textarea:not([is]):disabled {
+            background: #252525 !important;
+            color: rgba(255, 255, 255, .48) !important;
+            opacity: 1 !important;
+        }
+    </style>
 </head>
 <body>
     <div id="cmAdminPage" data-role="page" class="page type-interior pluginConfigurationPage cmAdminPage" data-controller="__plugin/cmadminjs">
@@ -155,7 +221,7 @@
                             Paste a MDBList numeric ID, username/list-name, official:slug, external:id, or mdblist.com list URL into a custom collection card only if you need a custom source.
                         </div>
                         <div style="display:flex;gap:.75em;align-items:center;flex-wrap:wrap;margin-top:.75em;">
-                            <button is="emby-button" type="button" id="btnTestMdblistApiKey"><span>Test API Key</span></button>
+                            <button type="button" id="btnTestMdblistApiKey" class="cmButton">Test API Key</button>
                             <span id="divMdblistApiKeyStatus" class="fieldDescription">Tests with the Top 100 Movies source and does not save or display the key.</span>
                         </div>
                     </div>
@@ -165,12 +231,12 @@
                             One-click starters with plain-English names. Add one, preview it, then Create Collection when it looks right.
                         </div>
                         <div id="divFeaturedScheduledExamples" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75em;">
-                            <button is="emby-button" type="button" id="btnCreateTop100Movies" class="raised cmFeaturedPreset" data-preset="top-100-movies"><span>Create Top 100 Movies</span></button>
-                            <button is="emby-button" type="button" class="cmFeaturedPreset" data-preset="popular-movies"><span>Popular Movies</span></button>
-                            <button is="emby-button" type="button" class="cmFeaturedPreset" data-preset="top-100-tv"><span>Top 100 TV Shows</span></button>
-                            <button is="emby-button" type="button" class="cmFeaturedPreset" data-preset="mdblist-imdb"><span>IMDb Watchlist</span></button>
-                            <button is="emby-button" type="button" class="cmFeaturedPreset" data-preset="short-movies"><span>Short Movies</span></button>
-                            <button is="emby-button" type="button" class="cmFeaturedPreset" data-preset="recent-movies"><span>Recently Added</span></button>
+                            <button type="button" id="btnCreateTop100Movies" class="cmButton cmButtonPrimary cmFeaturedPreset" data-preset="top-100-movies">Create Top 100 Movies</button>
+                            <button type="button" class="cmButton cmButtonBlock cmFeaturedPreset" data-preset="popular-movies">Popular Movies</button>
+                            <button type="button" class="cmButton cmButtonBlock cmFeaturedPreset" data-preset="top-100-tv">Top 100 TV Shows</button>
+                            <button type="button" class="cmButton cmButtonBlock cmFeaturedPreset" data-preset="mdblist-imdb">IMDb Watchlist</button>
+                            <button type="button" class="cmButton cmButtonBlock cmFeaturedPreset" data-preset="short-movies">Short Movies</button>
+                            <button type="button" class="cmButton cmButtonBlock cmFeaturedPreset" data-preset="recent-movies">Recently Added</button>
                         </div>
                     </div>
                     <div class="inputContainer" style="border:1px solid #444;border-radius:10px;padding:1em;background:rgba(255,255,255,.04);">
@@ -181,7 +247,7 @@
                         <div style="display:grid;grid-template-columns:minmax(180px,260px) minmax(260px,1fr) auto;gap:.75em;align-items:end;">
                             <label>Collection name<br /><input id="txtQuickScheduledName" type="text" placeholder="IMDb Watchlist" /></label>
                             <label>IMDb / MDBList link or IDs<br /><input id="txtQuickScheduledSource" type="text" placeholder="tt0111161, imdb.com/title/..., mdblist.com/lists/..." /></label>
-                            <button is="emby-button" type="button" id="btnQuickAddScheduledCollection" class="raised"><span>Create collection</span></button>
+                            <button type="button" id="btnQuickAddScheduledCollection" class="cmButton cmButtonPrimary">Create collection</button>
                         </div>
                         <div id="divQuickScheduledHint" class="fieldDescription" style="margin-top:.65em;"></div>
                     </div>
@@ -215,8 +281,8 @@
                                     <option value="custom">Blank Custom Collection</option>
                                 </select>
                             </label>
-                            <button is="emby-button" type="button" id="btnAddScheduledCollection" class="raised"><span>Add collection</span></button>
-                            <button is="emby-button" type="button" id="btnRunAllScheduledCollections"><span>Run all collections</span></button>
+                            <button type="button" id="btnAddScheduledCollection" class="cmButton cmButtonPrimary">Add collection</button>
+                            <button type="button" id="btnRunAllScheduledCollections" class="cmButton">Run all collections</button>
                         </div>
                         <div class="fieldDescription" style="margin-bottom:1em;">Tip: leave filters blank to include everything in the selected libraries/content type.</div>
                         <div id="divScheduledSetupChecklist" style="margin-bottom:1em;"></div>
