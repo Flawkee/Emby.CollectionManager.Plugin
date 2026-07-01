@@ -640,10 +640,9 @@ define([
         function previewCard(card) {
             var def = readCard(card);
             if (!def.Name) { setPreview(card, 'Name the collection first.'); return; }
-            setPreview(card, 'Saving settings and previewing…');
-            saveConfig().then(function () {
-                return apiPost('CollectionManager/ScheduledCollections/Preview', def);
-            }).then(function (r) {
+            def.MdblistApiKey = (form.elements.txtMdblistApiKey.value || '').trim();
+            setPreview(card, 'Previewing…');
+            apiPost('CollectionManager/ScheduledCollections/Preview', def).then(function (r) {
                 var data = typeof r === 'string' ? JSON.parse(r || '{}') : r;
                 renderPreviewResponse(card, data);
             }, function () {

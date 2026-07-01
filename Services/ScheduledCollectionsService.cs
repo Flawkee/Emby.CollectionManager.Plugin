@@ -24,6 +24,7 @@ namespace CollectionManager.Plugin.Services
     [Route("/CollectionManager/ScheduledCollections/Preview", "POST", Summary = "Preview a scheduled/custom collection")]
     public class PreviewScheduledCollection : ScheduledCollectionDefinition, IReturn<ScheduledCollectionPreviewResponse>
     {
+        public string MdblistApiKey { get; set; } = string.Empty;
     }
 
     [Route("/CollectionManager/ScheduledCollections/Run", "POST", Summary = "Build one scheduled/custom collection now")]
@@ -142,7 +143,10 @@ namespace CollectionManager.Plugin.Services
             var helper = ScheduledCollectionHelper.Instance;
             if (helper == null) return new ScheduledCollectionPreviewResponse();
 
-            var items = helper.GetMatchingItems(request).ToList();
+            var previewMdblistApiKey = !string.IsNullOrWhiteSpace(request.MdblistApiKey)
+                ? request.MdblistApiKey
+                : (Plugin.Instance?.Options?.MdblistApiKey ?? string.Empty);
+            var items = helper.GetMatchingItems(request, previewMdblistApiKey).ToList();
             return new ScheduledCollectionPreviewResponse
             {
                 Count = items.Count,
@@ -153,7 +157,7 @@ namespace CollectionManager.Plugin.Services
                     Type = i.GetType().Name,
                     Year = ReadNullableInt(i, "ProductionYear")
                 }).ToList(),
-                Warnings = ScheduledCollectionPreviewWarnings.Build(request, items.Count, DateTimeOffset.Now, !string.IsNullOrWhiteSpace(Plugin.Instance?.Options?.MdblistApiKey))
+                Warnings = ScheduledCollectionPreviewWarnings.Build(request, items.Count, DateTimeOffset.Now, !string.IsNullOrWhiteSpace(previewMdblistApiKey))
             };
         }
 

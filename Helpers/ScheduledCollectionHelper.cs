@@ -98,16 +98,16 @@ namespace CollectionManager.Plugin.Helpers
             return items.Length;
         }
 
-        public IEnumerable<BaseItem> GetMatchingItems(ScheduledCollectionDefinition def)
+        public IEnumerable<BaseItem> GetMatchingItems(ScheduledCollectionDefinition def, string? mdblistApiKeyOverride = null)
         {
             if (string.Equals(def.MatchMode, "Any", StringComparison.OrdinalIgnoreCase) && HasAnyOptionalFilter(def))
-                return GetAnyFilterItems(def);
+                return GetAnyFilterItems(def, mdblistApiKeyOverride);
 
             var queryItems = _libraryManager.GetItemList(BuildQuery(def, includeFilters: true, includeLimit: !RequiresPostProcessing(def)));
-            return ApplyPostProcessing(def, queryItems);
+            return ApplyPostProcessing(def, queryItems, mdblistApiKeyOverride);
         }
 
-        private IEnumerable<BaseItem> GetAnyFilterItems(ScheduledCollectionDefinition def)
+        private IEnumerable<BaseItem> GetAnyFilterItems(ScheduledCollectionDefinition def, string? mdblistApiKeyOverride)
         {
             var seen = new HashSet<long>();
             var results = new List<BaseItem>();
@@ -121,7 +121,7 @@ namespace CollectionManager.Plugin.Helpers
                 }
             }
 
-            return ApplyPostProcessing(def, results);
+            return ApplyPostProcessing(def, results, mdblistApiKeyOverride);
         }
 
         private bool RequiresPostProcessing(ScheduledCollectionDefinition def)
@@ -136,17 +136,17 @@ namespace CollectionManager.Plugin.Helpers
             return (def.IncludedImdbIds?.Length > 0) || !string.IsNullOrWhiteSpace(def.MdblistListPath);
         }
 
-        private IEnumerable<BaseItem> ApplyPostProcessing(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items)
+        private IEnumerable<BaseItem> ApplyPostProcessing(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride)
         {
-            var filtered = ApplyPostFilters(def, items);
+            var filtered = ApplyPostFilters(def, items, mdblistApiKeyOverride);
             if (ScheduledCollectionSortOptions.IsDateCreatedDescending(def.SortBy))
                 filtered = filtered.OrderByDescending(i => ReadNullableDateTime(i, "DateCreated") ?? DateTime.MinValue);
             return def.MaxItems > 0 ? filtered.Take(def.MaxItems) : filtered;
         }
 
-        private IEnumerable<BaseItem> ApplyPostFilters(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items)
+        private IEnumerable<BaseItem> ApplyPostFilters(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride)
         {
-            var imdbIds = ResolveExternalImdbIds(def);
+            var imdbIds = ResolveExternalImdbIds(def, mdblistApiKeyOverride);
             foreach (var item in items)
             {
                 if (!ScheduledCollectionRuntimeFilter.MatchesMaxRuntimeMinutes(ReadNullableLong(item, "RunTimeTicks"), def.MaxRuntimeMinutes))
@@ -157,7 +157,7 @@ namespace CollectionManager.Plugin.Helpers
             }
         }
 
-        private HashSet<string>? ResolveExternalImdbIds(ScheduledCollectionDefinition def)
+        private HashSet<string>? ResolveExternalImdbIds(ScheduledCollectionDefinition def, string? mdblistApiKeyOverride)
         {
             if (!HasExternalImdbFilter(def)) return null;
 
@@ -168,16 +168,18 @@ namespace CollectionManager.Plugin.Helpers
             var mdblistPath = ScheduledCollectionExternalIds.BuildMdblistItemsPath(def.MdblistListPath);
             if (!string.IsNullOrWhiteSpace(mdblistPath))
             {
-                foreach (var id in FetchMdblistImdbIds(mdblistPath, def.ContentType))
+                foreach (var id in FetchMdblistImdbIds(mdblistPath, def.ContentType, mdblistApiKeyOverride))
                     ids.Add(id);
             }
 
             return ids;
         }
 
-        private IEnumerable<string> FetchMdblistImdbIds(string itemsPath, string contentType)
+        private IEnumerable<string> FetchMdblistImdbIds(string itemsPath, string contentType, string? mdblistApiKeyOverride)
         {
-            var apiKey = Plugin.Instance?.Options?.MdblistApiKey ?? string.Empty;
+            var apiKey = !string.IsNullOrWhiteSpace(mdblistApiKeyOverride)
+                ? mdblistApiKeyOverride!.Trim()
+                : (Plugin.Instance?.Options?.MdblistApiKey ?? string.Empty);
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 _logger.Warn("[CollectionManager/ScheduledCollections] MDBList source configured but MDBList API key is missing");
@@ -187,7 +189,7 @@ namespace CollectionManager.Plugin.Helpers
             var mediaType = string.Equals(contentType, "Movies", StringComparison.OrdinalIgnoreCase) ? "movie"
                 : string.Equals(contentType, "TvShows", StringComparison.OrdinalIgnoreCase) ? "show"
                 : string.Empty;
-            var cacheKey = itemsPath + "|" + mediaType;
+            var cacheKey = itemsPath + "|" + mediaType + "|" + apiKey.GetHashCode();
             lock (_externalIdCache)
             {
                 if (_externalIdCache.TryGetValue(cacheKey, out var cached) && cached.ExpiresUtc > DateTime.UtcNow)
