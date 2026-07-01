@@ -22,6 +22,8 @@ define([
             form.elements.chkIncludeMovies.checked        = !!cfg.IncludeMovies;
             form.elements.chkIncludeTvShows.checked       = !!cfg.IncludeTvShows;
             form.elements.chkUpdateCollectionsImage.checked = !!cfg.UpdateCollectionsLibraryImage;
+            form.elements.chkEnableScheduledCollections.checked = !!cfg.EnableScheduledCollections;
+            form.elements.txtScheduledCollections.value = JSON.stringify(cfg.ScheduledCollections || [], null, 2);
             form.elements.chkDebugLogging.checked         = !!cfg.EnableDebugLogging;
         }
 
@@ -35,6 +37,9 @@ define([
             cfg.IncludeMovies                    = form.elements.chkIncludeMovies.checked;
             cfg.IncludeTvShows                   = form.elements.chkIncludeTvShows.checked;
             cfg.UpdateCollectionsLibraryImage    = form.elements.chkUpdateCollectionsImage.checked;
+            cfg.EnableScheduledCollections       = form.elements.chkEnableScheduledCollections.checked;
+            cfg.ScheduledCollections             = JSON.parse(form.elements.txtScheduledCollections.value || '[]');
+            if (!Array.isArray(cfg.ScheduledCollections)) throw new Error('Scheduled collections must be a JSON array.');
             cfg.EnableDebugLogging               = form.elements.chkDebugLogging.checked;
             return cfg;
         }
@@ -44,7 +49,13 @@ define([
             loading.show();
 
             ApiClient.getPluginConfiguration(pluginUniqueId).then(function (cfg) {
-                readConfigFromForm(cfg);
+                try {
+                    readConfigFromForm(cfg);
+                } catch (err) {
+                    loading.hide();
+                    Dashboard.alert({ title: 'Invalid scheduled collections JSON', message: err.message || String(err) });
+                    return;
+                }
                 ApiClient.updatePluginConfiguration(pluginUniqueId, cfg).then(function (result) {
                     Dashboard.processPluginConfigurationUpdateResult(result);
                     loading.hide();

@@ -7,7 +7,7 @@
     <RootNamespace>CollectionManager.Plugin</RootNamespace>
     <Nullable>enable</Nullable>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
-    <Version>1.0.0.2</Version>
+    <Version>1.0.0.3</Version>
     <Authors>Collection Manager</Authors>
     <GeneratedAssemblyInfoFile>assemblyinfo.cs</GeneratedAssemblyInfoFile>
   </PropertyGroup>
@@ -15,6 +15,12 @@
   <ItemGroup>
     <PackageReference Include="MediaBrowser.Server.Core" Version="4.8.2" />
     <PackageReference Include="System.Memory" Version="4.6.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="CollectionManager.Plugin.Tests\**" />
+    <EmbeddedResource Remove="CollectionManager.Plugin.Tests\**" />
+    <None Remove="CollectionManager.Plugin.Tests\**" />
   </ItemGroup>
 
   <ItemGroup>

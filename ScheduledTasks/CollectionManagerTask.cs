@@ -51,6 +51,7 @@ namespace CollectionManager.Plugin.ScheduledTasks
                 var scanner        = LibraryScanner.Instance;
                 var helper         = CollectionHelper.Instance;
                 var playlistHelper = PlaylistHelper.Instance;
+                var scheduledHelper = ScheduledCollectionHelper.Instance;
 
                 if (scanner == null || helper == null)
                 {
@@ -254,6 +255,16 @@ namespace CollectionManager.Plugin.ScheduledTasks
                 {
                     _logger.Info("[CollectionManager] Streaming service collections disabled server-wide — removing all managed streaming service collections");
                     helper.RemoveAllStreamingServiceCollections();
+                }
+
+                // ── Scheduled / seasonal collections ───────────────────────
+                if (config.EnableScheduledCollections && scheduledHelper != null)
+                {
+                    _logger.Info("[CollectionManager] Processing scheduled collections...");
+                    await scheduledHelper.ProcessScheduledCollectionsAsync(
+                        config.ScheduledCollections,
+                        DateTimeOffset.Now,
+                        cancellationToken).ConfigureAwait(false);
                 }
 
                 progress.Report(95);

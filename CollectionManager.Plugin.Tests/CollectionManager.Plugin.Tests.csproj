@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\Configuration\DynamicPlaylistDefinition.cs" Link="DynamicPlaylistDefinition.cs" />
+    <Compile Include="..\Configuration\ScheduledCollectionDefinition.cs" Link="ScheduledCollectionDefinition.cs" />
+    <Compile Include="..\Helpers\ScheduledCollectionEvaluator.cs" Link="ScheduledCollectionEvaluator.cs" />
+  </ItemGroup>
+</Project>

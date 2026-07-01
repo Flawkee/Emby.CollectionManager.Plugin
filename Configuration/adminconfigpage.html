@@ -120,6 +120,25 @@
                         </div>
                     </div>
 
+                    <h2 style="margin-top:2em;">Scheduled Collections</h2>
+                    <div class="checkboxContainer checkboxContainer-withDescription">
+                        <label>
+                            <input is="emby-checkbox" type="checkbox" id="chkEnableScheduledCollections" name="chkEnableScheduledCollections" />
+                            <span>Create scheduled / seasonal collections</span>
+                        </label>
+                        <div class="fieldDescription checkboxFieldDescription">
+                            Builds public collections only when their schedule is active, then removes them when inactive if RemoveWhenInactive is true.
+                            Use this for ACDB-style seasonal collections such as Halloween in October or Action Night every Friday.
+                        </div>
+                    </div>
+                    <div class="inputContainer">
+                        <textarea id="txtScheduledCollections" name="txtScheduledCollections" rows="12" style="width:100%;font-family:monospace;"></textarea>
+                        <div class="fieldDescription">
+                            JSON array of scheduled collection rules. Example:<br />
+                            <code>[{"Enabled":true,"Name":"Halloween Movies","ContentType":"Movies","IncludedGenres":["Horror"],"ActiveStart":"10-01","ActiveEnd":"10-31","RemoveWhenInactive":true},{"Enabled":true,"Name":"Friday Action","ContentType":"Movies","IncludedGenres":["Action"],"ActiveDaysOfWeek":["Friday"],"MaxItems":50}]</code>
+                        </div>
+                    </div>
+
                     <h2 style="margin-top:2em;">Diagnostics</h2>
                     <div class="checkboxContainer checkboxContainer-withDescription">
                         <label>

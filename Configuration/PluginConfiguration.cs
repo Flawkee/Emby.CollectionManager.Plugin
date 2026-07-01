@@ -1,4 +1,5 @@
 using MediaBrowser.Model.Plugins;
+using System.Collections.Generic;
 
 namespace CollectionManager.Plugin.Configuration
 {
@@ -20,6 +21,10 @@ namespace CollectionManager.Plugin.Configuration
         public bool IncludeMovies { get; set; } = true;
         public bool IncludeTvShows { get; set; } = true;
         public bool UpdateCollectionsLibraryImage { get; set; } = true;
+
+        // Scheduled Collections
+        public bool EnableScheduledCollections { get; set; } = false;
+        public List<ScheduledCollectionDefinition> ScheduledCollections { get; set; } = new List<ScheduledCollectionDefinition>();
 
         // Diagnostics
         public bool EnableDebugLogging { get; set; } = false;
