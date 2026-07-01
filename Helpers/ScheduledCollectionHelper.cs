@@ -66,9 +66,16 @@ namespace CollectionManager.Plugin.Helpers
             if (!active)
             {
                 if (def.RemoveWhenInactive)
-                    RemoveCollection(def.Name, "outside schedule or disabled");
+                    RemoveManagedCollection(def.Name, "outside schedule or disabled");
                 else
                     DebugLog($"[CollectionManager/ScheduledCollections] '{def.Name}' inactive but RemoveWhenInactive=false — leaving collection untouched");
+                return 0;
+            }
+
+            var existing = FindCollection(def.Name);
+            if (existing != null && !IsManagedCollection(existing))
+            {
+                _logger.Warn($"[CollectionManager/ScheduledCollections] Skipping '{def.Name}' because an existing collection with that name is not marked as managed by Collection Manager.");
                 return 0;
             }
 
@@ -78,12 +85,13 @@ namespace CollectionManager.Plugin.Helpers
             if (items.Length == 0)
             {
                 if (def.RemoveWhenInactive)
-                    RemoveCollection(def.Name, "active schedule matched no items");
+                    RemoveManagedCollection(def.Name, "active schedule matched no items");
                 return 0;
             }
 
             var itemIds = items.Select(i => i.InternalId).ToArray();
             await collectionHelper.EnsureItemsInCollectionAsync(def.Name, itemIds).ConfigureAwait(false);
+            MarkManagedCollection(def);
             return items.Length;
         }
 
@@ -92,7 +100,8 @@ namespace CollectionManager.Plugin.Helpers
             if (string.Equals(def.MatchMode, "Any", StringComparison.OrdinalIgnoreCase) && HasAnyOptionalFilter(def))
                 return GetAnyFilterItems(def);
 
-            return _libraryManager.GetItemList(BuildQuery(def, includeFilters: true, includeLimit: true));
+            var queryItems = _libraryManager.GetItemList(BuildQuery(def, includeFilters: true, includeLimit: !RequiresPostProcessing(def)));
+            return ApplyPostProcessing(def, queryItems);
         }
 
         private IEnumerable<BaseItem> GetAnyFilterItems(ScheduledCollectionDefinition def)
@@ -109,7 +118,30 @@ namespace CollectionManager.Plugin.Helpers
                 }
             }
 
-            return def.MaxItems > 0 ? results.Take(def.MaxItems) : results;
+            return ApplyPostProcessing(def, results);
+        }
+
+        private bool RequiresPostProcessing(ScheduledCollectionDefinition def)
+        {
+            return def.MaxRuntimeMinutes > 0 || ScheduledCollectionSortOptions.IsDateCreatedDescending(def.SortBy);
+        }
+
+        private IEnumerable<BaseItem> ApplyPostProcessing(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items)
+        {
+            var filtered = ApplyPostFilters(def, items);
+            if (ScheduledCollectionSortOptions.IsDateCreatedDescending(def.SortBy))
+                filtered = filtered.OrderByDescending(i => ReadNullableDateTime(i, "DateCreated") ?? DateTime.MinValue);
+            return def.MaxItems > 0 ? filtered.Take(def.MaxItems) : filtered;
+        }
+
+        private IEnumerable<BaseItem> ApplyPostFilters(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items)
+        {
+            foreach (var item in items)
+            {
+                if (!ScheduledCollectionRuntimeFilter.MatchesMaxRuntimeMinutes(ReadNullableLong(item, "RunTimeTicks"), def.MaxRuntimeMinutes))
+                    continue;
+                yield return item;
+            }
         }
 
         private IEnumerable<InternalItemsQuery> BuildAnyFilterQueries(ScheduledCollectionDefinition def)
@@ -253,6 +285,20 @@ namespace CollectionManager.Plugin.Helpers
             return query;
         }
 
+        private static long? ReadNullableLong(object item, string propertyName)
+        {
+            var value = item.GetType().GetProperty(propertyName)?.GetValue(item);
+            if (value is long l) return l;
+            return null;
+        }
+
+        private static DateTime? ReadNullableDateTime(object item, string propertyName)
+        {
+            var value = item.GetType().GetProperty(propertyName)?.GetValue(item);
+            if (value is DateTime dt) return dt;
+            return null;
+        }
+
         private long[] ResolveStudioIds(string[] studioNames)
         {
             return studioNames
@@ -274,16 +320,51 @@ namespace CollectionManager.Plugin.Helpers
                 .ToArray();
         }
 
-        private void RemoveCollection(string collectionName, string reason)
+        private BoxSet? FindCollection(string collectionName)
         {
-            var existing = _libraryManager.GetItemList(new InternalItemsQuery
+            return _libraryManager.GetItemList(new InternalItemsQuery
             {
                 IncludeItemTypes = new[] { "BoxSet" },
                 Name             = collectionName,
                 Recursive        = true
             }).OfType<BoxSet>().FirstOrDefault();
+        }
+
+        private static bool IsManagedCollection(BoxSet collection)
+        {
+            return ScheduledCollectionManagedMarker.IsManaged(collection.Overview);
+        }
+
+        private void MarkManagedCollection(ScheduledCollectionDefinition def)
+        {
+            var existing = FindCollection(def.Name);
+            if (existing == null) return;
+
+            var overview = ScheduledCollectionManagedMarker.BuildOverview(def);
+            if (string.Equals(existing.Overview ?? string.Empty, overview, StringComparison.Ordinal)) return;
+
+            try
+            {
+                existing.Overview = overview;
+                _libraryManager.UpdateItem(existing, existing.GetParent(), ItemUpdateType.MetadataEdit, null);
+                DebugLog($"[CollectionManager/ScheduledCollections] Marked '{def.Name}' as managed");
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn($"[CollectionManager/ScheduledCollections] Failed to mark '{def.Name}' as managed: {ex.Message}");
+            }
+        }
+
+        private void RemoveManagedCollection(string collectionName, string reason)
+        {
+            var existing = FindCollection(collectionName);
 
             if (existing == null) return;
+            if (!IsManagedCollection(existing))
+            {
+                _logger.Warn($"[CollectionManager/ScheduledCollections] Not removing '{collectionName}' ({reason}) because it is not marked as managed by Collection Manager");
+                return;
+            }
 
             try
             {

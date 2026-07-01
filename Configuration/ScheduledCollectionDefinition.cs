@@ -18,6 +18,16 @@ namespace CollectionManager.Plugin.Configuration
         public string[] ActiveDaysOfWeek { get; set; } = System.Array.Empty<string>();
 
         /// <summary>
+        /// Optional post-query sort. Supported: DateCreatedDescending.
+        /// </summary>
+        public string SortBy { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Optional maximum runtime in minutes. Zero means no runtime limit.
+        /// </summary>
+        public int MaxRuntimeMinutes { get; set; } = 0;
+
+        /// <summary>
         /// Remove the generated collection when it is outside its schedule or disabled.
         /// </summary>
         public bool RemoveWhenInactive { get; set; } = true;

@@ -11,8 +11,8 @@
                 <h1>Collection Manager</h1>
 
                 <p>
-                    Saving this page triggers an immediate run of the <b>Collection Manager</b> scheduled task.
-                    The task processes phases in this order: Dynamic User Playlists → Movie Franchises → TV Universes → Streaming Collections.
+                    Saving this page stores settings only. Use <b>Preview</b> for no-change checks, <b>Save &amp; Run This</b> for one custom collection, or <b>Run All Collections</b> for the full Collection Manager task.
+                    The task processes phases in this order: Dynamic User Playlists → Movie Franchises → TV Universes → Streaming Collections → Custom Collections.
                 </p>
                 <p>
                     Disabling a feature here turns it OFF for every user and removes any matching playlists they already have.
@@ -154,20 +154,30 @@
                                 <span class="fieldDescription" style="display:block;margin-bottom:.35em;">Start with a preset</span>
                                 <select id="selScheduledPreset" name="selScheduledPreset" is="emby-select" label="Preset">
                                     <option value="halloween">Halloween Horror</option>
+                                    <option value="kids-halloween">Kids Halloween</option>
                                     <option value="holiday">Holiday Movies</option>
+                                    <option value="holiday-family">Holiday Family Movies</option>
                                     <option value="friday-action">Friday Action Night</option>
+                                    <option value="weekend-movie-night">Weekend Movie Night</option>
+                                    <option value="short-movies">Short Movies Under 90 Minutes</option>
                                     <option value="kids">Kids Collection</option>
                                     <option value="new-releases">New Releases</option>
+                                    <option value="recent-movies">Recently Added Movies</option>
+                                    <option value="recent-tv">Recently Added TV</option>
                                     <option value="unwatched">Unwatched Movies</option>
+                                    <option value="unwatched-family">Unwatched Family Movies</option>
                                     <option value="favorites">Favorites</option>
+                                    <option value="awards">Oscar / Award Winners</option>
                                     <option value="4k">4K Movies</option>
+                                    <option value="4k-hdr">4K HDR Movies</option>
                                     <option value="custom">Blank Custom Collection</option>
                                 </select>
                             </label>
                             <button is="emby-button" type="button" id="btnAddScheduledCollection" class="raised"><span>Add collection</span></button>
-                            <button is="emby-button" type="button" id="btnRunAllScheduledCollections"><span>Run all now</span></button>
+                            <button is="emby-button" type="button" id="btnRunAllScheduledCollections"><span>Run all collections</span></button>
                         </div>
                         <div class="fieldDescription" style="margin-bottom:1em;">Tip: leave filters blank to include everything in the selected libraries/content type.</div>
+                        <div id="divScheduledCollectionsOverview" style="margin-bottom:1em;"></div>
 
                         <div id="divScheduledCollectionsEditor"></div>
                     </div>
