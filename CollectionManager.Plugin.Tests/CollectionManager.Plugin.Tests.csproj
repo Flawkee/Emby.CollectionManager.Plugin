@@ -13,6 +13,7 @@
     <Compile Include="..\Configuration\DynamicPlaylistDefinition.cs" Link="DynamicPlaylistDefinition.cs" />
     <Compile Include="..\Configuration\ScheduledCollectionDefinition.cs" Link="ScheduledCollectionDefinition.cs" />
     <Compile Include="..\Helpers\ScheduledCollectionEvaluator.cs" Link="ScheduledCollectionEvaluator.cs" />
+    <Compile Include="..\Helpers\ScheduledCollectionExternalIds.cs" Link="ScheduledCollectionExternalIds.cs" />
     <Compile Include="..\Helpers\ScheduledCollectionManagedMarker.cs" Link="ScheduledCollectionManagedMarker.cs" />
     <Compile Include="..\Helpers\ScheduledCollectionPreviewWarnings.cs" Link="ScheduledCollectionPreviewWarnings.cs" />
     <Compile Include="..\Helpers\ScheduledCollectionRuntimeFilter.cs" Link="ScheduledCollectionRuntimeFilter.cs" />

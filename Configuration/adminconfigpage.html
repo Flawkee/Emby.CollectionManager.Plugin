@@ -149,6 +149,13 @@
                         </div>
                     </div>
                     <div class="inputContainer">
+                        <input is="emby-input" id="txtMdblistApiKey" name="txtMdblistApiKey" type="password" label="MDBList API Key (optional):" />
+                        <div class="fieldDescription">
+                            Optional ACdb.tv-style list integration. MDBList can import IMDb watchlists/lists, then this plugin can fetch the MDBList and match your Emby items by IMDb provider ID.
+                            Paste a MDBList numeric ID, username/list-name, official:slug, external:id, or mdblist.com list URL into a custom collection card.
+                        </div>
+                    </div>
+                    <div class="inputContainer">
                         <div style="display:flex;gap:.75em;align-items:end;flex-wrap:wrap;margin-bottom:1em;">
                             <label style="min-width:230px;">
                                 <span class="fieldDescription" style="display:block;margin-bottom:.35em;">Start with a preset</span>
@@ -168,6 +175,7 @@
                                     <option value="unwatched-family">Unwatched Family Movies</option>
                                     <option value="favorites">Favorites</option>
                                     <option value="awards">Oscar / Award Winners</option>
+                                    <option value="mdblist-imdb">MDBList / IMDb Watchlist</option>
                                     <option value="4k">4K Movies</option>
                                     <option value="4k-hdr">4K HDR Movies</option>
                                     <option value="custom">Blank Custom Collection</option>

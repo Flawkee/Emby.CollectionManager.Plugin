@@ -115,6 +115,8 @@ define([
                     return { Enabled: true, Name: 'Favorites', ContentType: 'Both', IsFavorite: 'Yes', RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'awards':
                     return { Enabled: true, Name: 'Award Winners', ContentType: 'Movies', IncludedTags: ['Oscar', 'Award Winner'], RemoveWhenInactive: false, MatchMode: 'Any' };
+                case 'mdblist-imdb':
+                    return { Enabled: true, Name: 'IMDb Watchlist', ContentType: 'Both', MdblistListPath: '', IncludedImdbIds: [], RemoveWhenInactive: false, MatchMode: 'All' };
                 case '4k':
                     return { Enabled: true, Name: '4K Movies', ContentType: 'Movies', IncludedTags: ['4K'], RemoveWhenInactive: false, MatchMode: 'All' };
                 case '4k-hdr':
@@ -160,6 +162,7 @@ define([
             if (field === 'Tags') return _metadata.Tags || [];
             if (field === 'Years') return _metadata.Years || [];
             if (field === 'Ratings') return _metadata.Ratings || [];
+            if (field === 'ImdbIds') return [];
             return [];
         }
 
@@ -250,6 +253,7 @@ define([
                 + '<label><span>Item limit</span><br /><input class="cmSchedMaxItems" type="number" min="1" value="' + escAttr(def.MaxItems || '') + '"' + (noLimit ? ' disabled="disabled"' : '') + ' placeholder="No limit" /></label>'
                 + '<label style="align-self:end;"><input is="emby-checkbox" type="checkbox" class="cmSchedNoLimit"' + (noLimit ? ' checked="checked"' : '') + ' /><span>No limit</span></label>'
                 + '<label><span>Max runtime minutes</span><br /><input class="cmSchedMaxRuntime" type="number" min="1" value="' + escAttr(def.MaxRuntimeMinutes || '') + '" placeholder="No runtime limit" /></label>'
+                + '<label><span>MDBList source</span><br /><input class="cmSchedMdblistListPath" type="text" value="' + escAttr(def.MdblistListPath || '') + '" placeholder="12345, user/list, official:slug, external:id, or URL" /></label>'
                 + '</div>'
                 + '<div style="margin-top:.9em;"><h4 style="margin:.25em 0;">Libraries</h4>' + renderLibraryCheckboxes(def) + '</div>'
                 + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:.9em;margin-top:.9em;">'
@@ -258,6 +262,7 @@ define([
                 + tokenField('Tags', 'Tags', def.IncludedTags, _metadata.Tags, '4K', index)
                 + tokenField('Years', 'Years', def.IncludedYears, _metadata.Years, String(new Date().getFullYear()), index)
                 + tokenField('Ratings', 'Ratings', def.IncludedOfficialRatings, _metadata.Ratings, 'PG', index)
+                + tokenField('ImdbIds', 'IMDb title IDs / URLs', def.IncludedImdbIds, [], 'tt0111161 or imdb.com/title/tt0111161', index)
                 + '</div>'
                 + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:.75em;margin-top:.9em;">'
                 + '<label>Watched state<br /><select class="cmSchedPlayState"><option value="Any"' + ((def.PlayState || 'Any') === 'Any' ? ' selected' : '') + '>Any</option><option value="Played"' + (def.PlayState === 'Played' ? ' selected' : '') + '>Watched only</option><option value="Unplayed"' + (def.PlayState === 'Unplayed' ? ' selected' : '') + '>Unwatched only</option></select></label>'
@@ -293,6 +298,8 @@ define([
             if (def.IncludedTags && def.IncludedTags.length) parts.push('Tag: ' + def.IncludedTags.slice(0, 2).join(', '));
             if (def.IncludedYears && def.IncludedYears.length) parts.push('Year: ' + def.IncludedYears.slice(0, 2).join(', '));
             if (def.IncludedOfficialRatings && def.IncludedOfficialRatings.length) parts.push('Rating: ' + def.IncludedOfficialRatings.slice(0, 2).join(', '));
+            if (def.IncludedImdbIds && def.IncludedImdbIds.length) parts.push('IMDb IDs: ' + def.IncludedImdbIds.length);
+            if (def.MdblistListPath) parts.push('MDBList: ' + def.MdblistListPath);
             if (def.PlayState && def.PlayState !== 'Any') parts.push(def.PlayState);
             if (def.IsFavorite && def.IsFavorite !== 'Any') parts.push(def.IsFavorite === 'Yes' ? 'Favorites' : 'Not favorites');
             if (def.SortBy === 'DateCreatedDescending') parts.push('Recently added first');
@@ -349,6 +356,8 @@ define([
                 IncludedYears: tokenValues(card, 'Years'),
                 IncludedOfficialRatings: tokenValues(card, 'Ratings'),
                 IncludedTags: tokenValues(card, 'Tags'),
+                IncludedImdbIds: tokenValues(card, 'ImdbIds'),
+                MdblistListPath: card.querySelector('.cmSchedMdblistListPath').value.trim(),
                 PlayState: card.querySelector('.cmSchedPlayState').value,
                 IsFavorite: card.querySelector('.cmSchedFavorite').value,
                 SeriesStatus: card.querySelector('.cmSchedSeriesStatus').value,
@@ -396,6 +405,7 @@ define([
             renderCheckboxList(divStreamingLibraries, _libraries, cfg.StreamingLibraryIds || [], 'streamingLibrary');
             form.elements.chkUpdateCollectionsImage.checked = !!cfg.UpdateCollectionsLibraryImage;
             form.elements.chkEnableScheduledCollections.checked = !!cfg.EnableScheduledCollections;
+            form.elements.txtMdblistApiKey.value = cfg.MdblistApiKey || '';
             renderScheduledCollections(cfg.ScheduledCollections || []);
             form.elements.chkDebugLogging.checked         = !!cfg.EnableDebugLogging;
         }
@@ -413,6 +423,7 @@ define([
             cfg.StreamingLibraryIds              = readCheckboxList(divStreamingLibraries);
             cfg.UpdateCollectionsLibraryImage    = form.elements.chkUpdateCollectionsImage.checked;
             cfg.EnableScheduledCollections       = form.elements.chkEnableScheduledCollections.checked;
+            cfg.MdblistApiKey                    = form.elements.txtMdblistApiKey.value;
             cfg.ScheduledCollections             = readScheduledCollectionsFromEditor();
             cfg.EnableDebugLogging               = form.elements.chkDebugLogging.checked;
             return cfg;

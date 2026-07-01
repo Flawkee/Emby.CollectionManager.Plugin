@@ -6,6 +6,7 @@ using MediaBrowser.Model.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -15,6 +16,8 @@ namespace CollectionManager.Plugin.Helpers
     {
         private static ScheduledCollectionHelper? _instance;
         private static readonly object _lock = new object();
+        private static readonly HttpClient _mdblistClient = new HttpClient { BaseAddress = new Uri("https://api.mdblist.com") };
+        private static readonly Dictionary<string, CachedExternalIds> _externalIdCache = new Dictionary<string, CachedExternalIds>(StringComparer.OrdinalIgnoreCase);
 
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
@@ -123,7 +126,14 @@ namespace CollectionManager.Plugin.Helpers
 
         private bool RequiresPostProcessing(ScheduledCollectionDefinition def)
         {
-            return def.MaxRuntimeMinutes > 0 || ScheduledCollectionSortOptions.IsDateCreatedDescending(def.SortBy);
+            return def.MaxRuntimeMinutes > 0
+                || ScheduledCollectionSortOptions.IsDateCreatedDescending(def.SortBy)
+                || HasExternalImdbFilter(def);
+        }
+
+        private bool HasExternalImdbFilter(ScheduledCollectionDefinition def)
+        {
+            return (def.IncludedImdbIds?.Length > 0) || !string.IsNullOrWhiteSpace(def.MdblistListPath);
         }
 
         private IEnumerable<BaseItem> ApplyPostProcessing(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items)
@@ -136,12 +146,107 @@ namespace CollectionManager.Plugin.Helpers
 
         private IEnumerable<BaseItem> ApplyPostFilters(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items)
         {
+            var imdbIds = ResolveExternalImdbIds(def);
             foreach (var item in items)
             {
                 if (!ScheduledCollectionRuntimeFilter.MatchesMaxRuntimeMinutes(ReadNullableLong(item, "RunTimeTicks"), def.MaxRuntimeMinutes))
                     continue;
+                if (imdbIds != null && !MatchesImdbId(item, imdbIds))
+                    continue;
                 yield return item;
             }
+        }
+
+        private HashSet<string>? ResolveExternalImdbIds(ScheduledCollectionDefinition def)
+        {
+            if (!HasExternalImdbFilter(def)) return null;
+
+            var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var id in ScheduledCollectionExternalIds.ExtractImdbIdsFromText(string.Join(",", def.IncludedImdbIds ?? Array.Empty<string>())))
+                ids.Add(id);
+
+            var mdblistPath = ScheduledCollectionExternalIds.BuildMdblistItemsPath(def.MdblistListPath);
+            if (!string.IsNullOrWhiteSpace(mdblistPath))
+            {
+                foreach (var id in FetchMdblistImdbIds(mdblistPath, def.ContentType))
+                    ids.Add(id);
+            }
+
+            return ids;
+        }
+
+        private IEnumerable<string> FetchMdblistImdbIds(string itemsPath, string contentType)
+        {
+            var apiKey = Plugin.Instance?.Options?.MdblistApiKey ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                _logger.Warn("[CollectionManager/ScheduledCollections] MDBList source configured but MDBList API key is missing");
+                return Array.Empty<string>();
+            }
+
+            var mediaType = string.Equals(contentType, "Movies", StringComparison.OrdinalIgnoreCase) ? "movie"
+                : string.Equals(contentType, "TvShows", StringComparison.OrdinalIgnoreCase) ? "show"
+                : string.Empty;
+            var cacheKey = itemsPath + "|" + mediaType;
+            lock (_externalIdCache)
+            {
+                if (_externalIdCache.TryGetValue(cacheKey, out var cached) && cached.ExpiresUtc > DateTime.UtcNow)
+                    return cached.Ids;
+            }
+
+            try
+            {
+                var ids = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+                string? cursor = null;
+                for (var page = 0; page < 10; page++)
+                {
+                    var query = "?limit=1000&apikey=" + Uri.EscapeDataString(apiKey);
+                    if (!string.IsNullOrWhiteSpace(mediaType)) query += "&mediatype=" + Uri.EscapeDataString(mediaType);
+                    if (!string.IsNullOrWhiteSpace(cursor)) query += "&cursor=" + Uri.EscapeDataString(cursor);
+
+                    var json = _mdblistClient.GetStringAsync(itemsPath + query).GetAwaiter().GetResult();
+                    foreach (var id in ScheduledCollectionExternalIds.ExtractImdbIdsFromMdblistJson(json))
+                        ids.Add(id);
+
+                    cursor = ExtractNextCursor(json);
+                    if (string.IsNullOrWhiteSpace(cursor)) break;
+                }
+
+                var result = ids.ToArray();
+                lock (_externalIdCache)
+                {
+                    _externalIdCache[cacheKey] = new CachedExternalIds(result, DateTime.UtcNow.AddMinutes(30));
+                }
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn($"[CollectionManager/ScheduledCollections] Failed to fetch MDBList items from '{itemsPath}': {ex.Message}");
+                return Array.Empty<string>();
+            }
+        }
+
+        private static string ExtractNextCursor(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return string.Empty;
+            var marker = "\"next_cursor\"";
+            var idx = json.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0) return string.Empty;
+            var colon = json.IndexOf(':', idx + marker.Length);
+            if (colon < 0) return string.Empty;
+            var firstQuote = json.IndexOf('\"', colon + 1);
+            if (firstQuote < 0) return string.Empty;
+            var secondQuote = json.IndexOf('\"', firstQuote + 1);
+            if (secondQuote <= firstQuote) return string.Empty;
+            return json.Substring(firstQuote + 1, secondQuote - firstQuote - 1);
+        }
+
+        private static bool MatchesImdbId(BaseItem item, HashSet<string> imdbIds)
+        {
+            if (imdbIds.Count == 0) return false;
+            if (item.ProviderIds != null && item.ProviderIds.TryGetValue("Imdb", out var imdbId))
+                return imdbIds.Contains(ScheduledCollectionExternalIds.NormalizeImdbId(imdbId));
+            return false;
         }
 
         private IEnumerable<InternalItemsQuery> BuildAnyFilterQueries(ScheduledCollectionDefinition def)
@@ -375,6 +480,18 @@ namespace CollectionManager.Plugin.Helpers
             {
                 _logger.Warn($"[CollectionManager/ScheduledCollections] Failed to remove '{collectionName}': {ex.Message}");
             }
+        }
+
+        private sealed class CachedExternalIds
+        {
+            public CachedExternalIds(string[] ids, DateTime expiresUtc)
+            {
+                Ids = ids;
+                ExpiresUtc = expiresUtc;
+            }
+
+            public string[] Ids { get; }
+            public DateTime ExpiresUtc { get; }
         }
     }
 }

@@ -18,6 +18,17 @@ namespace CollectionManager.Plugin.Configuration
         public string[] ActiveDaysOfWeek { get; set; } = System.Array.Empty<string>();
 
         /// <summary>
+        /// IMDb title IDs or IMDb title URLs to match against Emby provider IDs.
+        /// </summary>
+        public string[] IncludedImdbIds { get; set; } = System.Array.Empty<string>();
+
+        /// <summary>
+        /// Optional MDBList source (numeric list ID, username/list-name, official:slug, external:id, or mdblist.com list URL).
+        /// MDBList can import IMDb watchlists, which makes this the ACdb.tv-style IMDb data path.
+        /// </summary>
+        public string MdblistListPath { get; set; } = string.Empty;
+
+        /// <summary>
         /// Optional post-query sort. Supported: DateCreatedDescending.
         /// </summary>
         public string SortBy { get; set; } = string.Empty;

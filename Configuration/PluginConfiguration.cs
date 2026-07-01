@@ -24,6 +24,7 @@ namespace CollectionManager.Plugin.Configuration
 
         // Scheduled Collections
         public bool EnableScheduledCollections { get; set; } = false;
+        public string MdblistApiKey { get; set; } = string.Empty;
         public List<ScheduledCollectionDefinition> ScheduledCollections { get; set; } = new List<ScheduledCollectionDefinition>();
 
         // Diagnostics

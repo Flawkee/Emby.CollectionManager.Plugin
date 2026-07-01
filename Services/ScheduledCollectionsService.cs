@@ -132,7 +132,7 @@ namespace CollectionManager.Plugin.Services
                     Type = i.GetType().Name,
                     Year = ReadNullableInt(i, "ProductionYear")
                 }).ToList(),
-                Warnings = ScheduledCollectionPreviewWarnings.Build(request, items.Count, DateTimeOffset.Now)
+                Warnings = ScheduledCollectionPreviewWarnings.Build(request, items.Count, DateTimeOffset.Now, !string.IsNullOrWhiteSpace(Plugin.Instance?.Options?.MdblistApiKey))
             };
         }
 
