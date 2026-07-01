@@ -70,10 +70,16 @@ namespace CollectionManager.Plugin.Helpers
                     value = value.Substring("lists/".Length);
             }
 
+            if (value.StartsWith("official/", StringComparison.OrdinalIgnoreCase))
+            {
+                var slug = value.Substring("official/".Length).Trim('/');
+                return string.IsNullOrWhiteSpace(slug) ? string.Empty : "/lists/official/" + EscapePath(slug) + "/items";
+            }
+
             if (value.StartsWith("official:", StringComparison.OrdinalIgnoreCase))
             {
                 var slug = value.Substring("official:".Length).Trim('/');
-                return string.IsNullOrWhiteSpace(slug) ? string.Empty : "/lists/official/" + EscapePathSegment(slug) + "/items";
+                return string.IsNullOrWhiteSpace(slug) ? string.Empty : "/lists/official/" + EscapePath(slug) + "/items";
             }
 
             if (value.StartsWith("external:", StringComparison.OrdinalIgnoreCase))
@@ -90,6 +96,11 @@ namespace CollectionManager.Plugin.Helpers
                 return "/lists/" + EscapePathSegment(parts[0]) + "/" + EscapePathSegment(parts[1]) + "/items";
 
             return string.Empty;
+        }
+
+        private static string EscapePath(string path)
+        {
+            return string.Join("/", path.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries).Select(EscapePathSegment));
         }
 
         private static string EscapePathSegment(string value)

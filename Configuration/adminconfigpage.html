@@ -151,8 +151,8 @@
                     <div class="inputContainer">
                         <input is="emby-input" id="txtMdblistApiKey" name="txtMdblistApiKey" type="password" label="MDBList API Key (optional):" />
                         <div class="fieldDescription">
-                            Optional ACdb.tv-style list integration. MDBList can import IMDb watchlists/lists, then this plugin can fetch the MDBList and match your Emby items by IMDb provider ID.
-                            Paste a MDBList numeric ID, username/list-name, official:slug, external:id, or mdblist.com list URL into a custom collection card.
+                            Optional ACdb.tv-style list integration. Required for ready-made MDBList presets like Top 100 Movies and for imported IMDb watchlists/lists.
+                            Paste a MDBList numeric ID, username/list-name, official:slug, external:id, or mdblist.com list URL into a custom collection card only if you need a custom source.
                         </div>
                     </div>
                     <div class="inputContainer" style="border:1px solid #444;border-radius:10px;padding:1em;background:rgba(255,255,255,.04);">
@@ -172,6 +172,10 @@
                             <label style="min-width:230px;">
                                 <span class="fieldDescription" style="display:block;margin-bottom:.35em;">Start with a preset</span>
                                 <select id="selScheduledPreset" name="selScheduledPreset" is="emby-select" label="Preset">
+                                    <option value="top-100-movies">Top 100 Movies</option>
+                                    <option value="popular-movies">Popular Movies</option>
+                                    <option value="streaming-chart-movies">Streaming Chart Movies</option>
+                                    <option value="top-100-tv">Top 100 TV Shows</option>
                                     <option value="halloween">Halloween Horror</option>
                                     <option value="kids-halloween">Kids Halloween</option>
                                     <option value="holiday">Holiday Movies</option>

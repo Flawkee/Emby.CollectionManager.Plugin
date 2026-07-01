@@ -16,6 +16,8 @@ public sealed class ScheduledCollectionExternalIdsTests
     [Theory]
     [InlineData("12345", "/lists/12345/items")]
     [InlineData("official:imdb-top-250", "/lists/official/imdb-top-250/items")]
+    [InlineData("official:movies/moviemeter", "/lists/official/movies/moviemeter/items")]
+    [InlineData("https://mdblist.com/lists/official/movies/moviemeter", "/lists/official/movies/moviemeter/items")]
     [InlineData("abdiel/halloween", "/lists/abdiel/halloween/items")]
     [InlineData("https://mdblist.com/lists/abdiel/halloween", "/lists/abdiel/halloween/items")]
     [InlineData("https://mdblist.com/lists/12345", "/lists/12345/items")]

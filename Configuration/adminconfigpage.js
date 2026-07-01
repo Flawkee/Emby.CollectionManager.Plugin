@@ -119,6 +119,14 @@ define([
 
         function presetDefinition(kind) {
             switch (kind) {
+                case 'top-100-movies':
+                    return { Enabled: true, Name: 'Top 100 Movies', ContentType: 'Movies', MdblistListPath: 'official:movies/moviemeter', MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'popular-movies':
+                    return { Enabled: true, Name: 'Popular Movies', ContentType: 'Movies', MdblistListPath: 'official:movies/popular', MaxItems: 50, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'streaming-chart-movies':
+                    return { Enabled: true, Name: 'Streaming Chart Movies', ContentType: 'Movies', MdblistListPath: 'official:movies/streaming-charts', MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'top-100-tv':
+                    return { Enabled: true, Name: 'Top 100 TV Shows', ContentType: 'TvShows', MdblistListPath: 'official:shows/moviemeter', MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'halloween':
                     return { Enabled: true, Name: 'Halloween Movies', ContentType: 'Movies', IncludedGenres: ['Horror'], ActiveStart: '10-01', ActiveEnd: '10-31', RemoveWhenInactive: true, MatchMode: 'All' };
                 case 'kids-halloween':
