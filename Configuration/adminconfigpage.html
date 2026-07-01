@@ -132,11 +132,28 @@
                         </div>
                     </div>
                     <div class="inputContainer">
-                        <textarea id="txtScheduledCollections" name="txtScheduledCollections" rows="12" style="width:100%;font-family:monospace;"></textarea>
-                        <div class="fieldDescription">
-                            JSON array of scheduled collection rules. Example:<br />
-                            <code>[{"Enabled":true,"Name":"Halloween Movies","ContentType":"Movies","IncludedGenres":["Horror"],"ActiveStart":"10-01","ActiveEnd":"10-31","RemoveWhenInactive":true},{"Enabled":true,"Name":"Friday Action","ContentType":"Movies","IncludedGenres":["Action"],"ActiveDaysOfWeek":["Friday"],"MaxItems":50}]</code>
+                        <div style="display:flex;gap:.75em;align-items:end;flex-wrap:wrap;margin-bottom:1em;">
+                            <label style="min-width:220px;">
+                                <span class="fieldDescription" style="display:block;margin-bottom:.35em;">Start with a preset</span>
+                                <select id="selScheduledPreset" name="selScheduledPreset" is="emby-select" label="Preset">
+                                    <option value="halloween">Halloween Horror</option>
+                                    <option value="holiday">Holiday Movies</option>
+                                    <option value="friday-action">Friday Action Night</option>
+                                    <option value="custom">Blank Custom Collection</option>
+                                </select>
+                            </label>
+                            <button is="emby-button" type="button" id="btnAddScheduledCollection" class="raised"><span>Add collection</span></button>
                         </div>
+
+                        <div id="divScheduledCollectionsEditor"></div>
+
+                        <details style="margin-top:1em;">
+                            <summary>Advanced: edit raw JSON</summary>
+                            <textarea id="txtScheduledCollections" name="txtScheduledCollections" rows="10" style="width:100%;font-family:monospace;margin-top:.75em;"></textarea>
+                            <div style="margin-top:.5em;">
+                                <button is="emby-button" type="button" id="btnApplyScheduledJson"><span>Apply JSON to editor</span></button>
+                            </div>
+                        </details>
                     </div>
 
                     <h2 style="margin-top:2em;">Diagnostics</h2>
