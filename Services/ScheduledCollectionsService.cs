@@ -10,6 +10,7 @@ using MediaBrowser.Model.Tasks;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -35,6 +36,13 @@ namespace CollectionManager.Plugin.Services
     {
     }
 
+    [Route("/CollectionManager/ScheduledCollections/TestMdblistApiKey", "POST", Summary = "Test the MDBList API key used by custom collections")]
+    public class TestScheduledCollectionMdblistApiKey : IReturn<ScheduledCollectionMdblistApiKeyTestResponse>
+    {
+        public string ApiKey { get; set; } = string.Empty;
+        public string ListPath { get; set; } = string.Empty;
+    }
+
     public class ScheduledCollectionMetadataResponse
     {
         public List<MetadataOption> Libraries { get; set; } = new List<MetadataOption>();
@@ -43,6 +51,8 @@ namespace CollectionManager.Plugin.Services
         public List<string> Tags { get; set; } = new List<string>();
         public List<string> Years { get; set; } = new List<string>();
         public List<string> Ratings { get; set; } = new List<string>();
+        public int ImdbProviderIdCount { get; set; }
+        public bool HasImdbProviderIds { get; set; }
     }
 
     public class MetadataOption
@@ -73,11 +83,20 @@ namespace CollectionManager.Plugin.Services
         public int Count { get; set; }
     }
 
+    public class ScheduledCollectionMdblistApiKeyTestResponse
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public int ImdbIdCount { get; set; }
+        public string FriendlySource { get; set; } = string.Empty;
+    }
+
     public class ScheduledCollectionsService : IService
     {
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
         private readonly ITaskManager _taskManager;
+        private static readonly HttpClient MdblistTestClient = new HttpClient { BaseAddress = new Uri("https://api.mdblist.com") };
 
         public ScheduledCollectionsService(ILogger logger, ILibraryManager libraryManager, ITaskManager taskManager)
         {
@@ -112,6 +131,8 @@ namespace CollectionManager.Plugin.Services
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(s => s)
                 .ToList();
+            response.ImdbProviderIdCount = items.Count(HasImdbProviderId);
+            response.HasImdbProviderIds = response.ImdbProviderIdCount > 0;
 
             return response;
         }
@@ -173,6 +194,73 @@ namespace CollectionManager.Plugin.Services
             }
         }
 
+        public async Task<object> Post(TestScheduledCollectionMdblistApiKey request)
+        {
+            var apiKey = (request.ApiKey ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(apiKey))
+                apiKey = Plugin.Instance?.Options?.MdblistApiKey ?? string.Empty;
+
+            var source = string.IsNullOrWhiteSpace(request.ListPath) ? "official:movies/moviemeter" : request.ListPath;
+            var path = ScheduledCollectionExternalIds.BuildMdblistItemsPath(source);
+            var friendly = ScheduledCollectionUserExperience.FriendlySourceLabel(new ScheduledCollectionDefinition { MdblistListPath = source });
+
+            if (string.IsNullOrWhiteSpace(apiKey))
+            {
+                return new ScheduledCollectionMdblistApiKeyTestResponse
+                {
+                    Success = false,
+                    FriendlySource = friendly,
+                    Message = "Enter an MDBList API key first."
+                };
+            }
+
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return new ScheduledCollectionMdblistApiKeyTestResponse
+                {
+                    Success = false,
+                    FriendlySource = friendly,
+                    Message = "The MDBList source is not in a supported format."
+                };
+            }
+
+            try
+            {
+                var mediaType = path.IndexOf("/shows/", StringComparison.OrdinalIgnoreCase) >= 0 ? "show" : "movie";
+                var query = "?limit=25&apikey=" + Uri.EscapeDataString(apiKey) + "&mediatype=" + Uri.EscapeDataString(mediaType);
+                var json = await MdblistTestClient.GetStringAsync(path + query).ConfigureAwait(false);
+                var ids = ScheduledCollectionExternalIds.ExtractImdbIdsFromMdblistJson(json);
+                if (ids.Length == 0)
+                {
+                    return new ScheduledCollectionMdblistApiKeyTestResponse
+                    {
+                        Success = false,
+                        FriendlySource = friendly,
+                        ImdbIdCount = 0,
+                        Message = "MDBList responded, but this list returned no IMDb IDs. Try another source or check the list privacy/settings."
+                    };
+                }
+
+                return new ScheduledCollectionMdblistApiKeyTestResponse
+                {
+                    Success = true,
+                    FriendlySource = friendly,
+                    ImdbIdCount = ids.Length,
+                    Message = "Connected to MDBList and found " + ids.Length + " IMDb ID" + (ids.Length == 1 ? string.Empty : "s") + " from " + friendly + "."
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn("[CollectionManager/ScheduledCollections] MDBList API key test failed: " + ex.Message);
+                return new ScheduledCollectionMdblistApiKeyTestResponse
+                {
+                    Success = false,
+                    FriendlySource = friendly,
+                    Message = "MDBList test failed. Check the API key and try again."
+                };
+            }
+        }
+
         private List<MetadataOption> GetVirtualFolderOptions()
         {
             var scanner = LibraryScanner.Instance;
@@ -216,6 +304,13 @@ namespace CollectionManager.Plugin.Services
             var value = item.GetType().GetProperty(propertyName)?.GetValue(item);
             if (value is IEnumerable<string> strings) return strings.Where(s => !string.IsNullOrWhiteSpace(s));
             return Enumerable.Empty<string>();
+        }
+
+        private static bool HasImdbProviderId(BaseItem item)
+        {
+            return item.ProviderIds != null
+                && item.ProviderIds.TryGetValue("Imdb", out var imdbId)
+                && !string.IsNullOrWhiteSpace(imdbId);
         }
     }
 }

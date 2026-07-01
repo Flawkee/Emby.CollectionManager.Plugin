@@ -17,15 +17,19 @@ define([
         var divStreamingLibraries = view.querySelector('#divStreamingLibraries');
         var divScheduledEditor = view.querySelector('#divScheduledCollectionsEditor');
         var divScheduledOverview = view.querySelector('#divScheduledCollectionsOverview');
+        var divScheduledSetupChecklist = view.querySelector('#divScheduledSetupChecklist');
         var selScheduledPreset = view.querySelector('#selScheduledPreset');
         var btnAddScheduledCollection = view.querySelector('#btnAddScheduledCollection');
         var btnRunAllScheduledCollections = view.querySelector('#btnRunAllScheduledCollections');
+        var btnTestMdblistApiKey = view.querySelector('#btnTestMdblistApiKey');
+        var divMdblistApiKeyStatus = view.querySelector('#divMdblistApiKeyStatus');
+        var divFeaturedExamples = view.querySelector('#divFeaturedScheduledExamples');
         var txtQuickScheduledName = view.querySelector('#txtQuickScheduledName');
         var txtQuickScheduledSource = view.querySelector('#txtQuickScheduledSource');
         var btnQuickAddScheduledCollection = view.querySelector('#btnQuickAddScheduledCollection');
         var divQuickScheduledHint = view.querySelector('#divQuickScheduledHint');
         var _libraries = [];
-        var _metadata = { Libraries: [], Genres: [], Studios: [], Tags: [], Years: [], Ratings: [] };
+        var _metadata = { Libraries: [], Genres: [], Studios: [], Tags: [], Years: [], Ratings: [], ImdbProviderIdCount: 0, HasImdbProviderIds: false };
 
         function escAttr(s) {
             return (s == null ? '' : String(s))
@@ -73,6 +77,121 @@ define([
             if (!String(source || '').trim()) return '';
             if (ids.length) return 'Detected ' + ids.length + ' IMDb title ID' + (ids.length === 1 ? '' : 's') + '. No MDBList API key needed for direct title IDs.';
             return 'Detected a list source. If this is an IMDb watchlist/list, import it into MDBList first, add your MDBList API key above, then Preview.';
+        }
+
+        function mdblistPathKey(source) {
+            var value = String(source || '').trim().replace(/^https?:\/\/[^/]+\/lists\//i, '').replace(/^lists\//i, '').replace(/^official:/i, 'official/').replace(/\/+$/g, '');
+            return value.toLowerCase();
+        }
+
+        function friendlyMdblistSource(source) {
+            var key = mdblistPathKey(source);
+            if (key === 'official/movies/moviemeter') return 'IMDb MovieMeter Top Movies via MDBList';
+            if (key === 'official/movies/popular') return 'Popular Movies via MDBList';
+            if (key === 'official/movies/streaming-charts') return 'Streaming Chart Movies via MDBList';
+            if (key === 'official/shows/moviemeter') return 'IMDb MovieMeter Top TV Shows via MDBList';
+            return source ? 'Custom MDBList source' : '';
+        }
+
+        function friendlySourceLabel(def) {
+            def = def || {};
+            if (def.IncludedImdbIds && def.IncludedImdbIds.length) return def.IncludedImdbIds.length + ' direct IMDb title ID' + (def.IncludedImdbIds.length === 1 ? '' : 's');
+            if (def.MdblistListPath) return friendlyMdblistSource(def.MdblistListPath);
+            return 'Library filters';
+        }
+
+        function needsMdblistApiKey(def) {
+            return !!(def && def.MdblistListPath && def.MdblistListPath.trim());
+        }
+
+        function hasLocalOrExternalSource(def) {
+            def = def || {};
+            return needsMdblistApiKey(def)
+                || (def.IncludedImdbIds && def.IncludedImdbIds.length)
+                || (def.IncludedGenres && def.IncludedGenres.length)
+                || (def.IncludedStudios && def.IncludedStudios.length)
+                || (def.IncludedTags && def.IncludedTags.length)
+                || (def.IncludedYears && def.IncludedYears.length)
+                || (def.IncludedOfficialRatings && def.IncludedOfficialRatings.length)
+                || (def.PlayState && def.PlayState !== 'Any')
+                || (def.IsFavorite && def.IsFavorite !== 'Any')
+                || (def.SeriesStatus && def.SeriesStatus !== 'Any')
+                || !!def.SortBy
+                || def.MaxRuntimeMinutes > 0
+                || def.ContentType === 'Movies'
+                || def.ContentType === 'TvShows';
+        }
+
+        function renderSetupChecklist(defs) {
+            if (!divScheduledSetupChecklist) return;
+            defs = defs || [];
+            var enabledDefs = defs.filter(function (d) { return d && d.Enabled !== false && d.Name; });
+            var needsKey = enabledDefs.some(needsMdblistApiKey);
+            var hasKey = !!((form.elements.txtMdblistApiKey && form.elements.txtMdblistApiKey.value) || '').trim();
+            var hasSource = enabledDefs.some(hasLocalOrExternalSource);
+            var hasImdbMetadata = !!(_metadata.HasImdbProviderIds || _metadata.ImdbProviderIdCount > 0);
+            var items = [
+                { ok: form.elements.chkEnableScheduledCollections.checked, label: 'Custom collections', detail: form.elements.chkEnableScheduledCollections.checked ? 'enabled' : 'turn this on before running presets' },
+                { ok: enabledDefs.length > 0, label: 'Collection', detail: enabledDefs.length ? enabledDefs.length + ' enabled collection' + (enabledDefs.length === 1 ? '' : 's') : 'add a featured example or preset' },
+                { ok: !needsKey || hasKey, label: 'MDBList API key', detail: needsKey ? (hasKey ? 'configured' : 'needed for MDBList/IMDb presets') : 'not needed for direct IMDb IDs/local filters' },
+                { ok: !needsKey || hasImdbMetadata, label: 'Emby IMDb metadata', detail: hasImdbMetadata ? (_metadata.ImdbProviderIdCount + ' item(s) with IMDb IDs detected') : (needsKey ? 'refresh metadata if previews return zero matches' : 'not required for local filters') },
+                { ok: enabledDefs.length > 0 && hasSource, label: 'Ready', detail: hasSource ? 'click Preview First to check matches' : 'add IMDb IDs, an MDBList source, or local filters' }
+            ];
+            divScheduledSetupChecklist.innerHTML = '<div style="border:1px solid #444;border-radius:10px;padding:.85em;background:rgba(255,255,255,.035);">'
+                + '<b>Setup checklist</b>'
+                + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.5em;margin-top:.65em;">'
+                + items.map(function (item) {
+                    return '<div><span style="color:' + (item.ok ? '#7bd88f' : '#ffcc66') + ';font-weight:700;">' + (item.ok ? '✓' : '⚠') + '</span> '
+                        + '<b>' + escText(item.label) + '</b><br /><span class="fieldDescription">' + escText(item.detail) + '</span></div>';
+                }).join('') + '</div></div>';
+        }
+
+        function renderSourceHelper(card) {
+            var def = readCard(card);
+            var helper = card.querySelector('.cmSourceHelper');
+            if (helper) helper.innerHTML = escText(friendlySourceLabel(def));
+        }
+
+        function emptyPreviewHelp(def) {
+            var tips = ['No items matched.'];
+            if (needsMdblistApiKey(def)) {
+                tips.push('Test/save the MDBList API key above, then preview again.');
+                tips.push('Make sure Emby metadata has IMDb provider IDs; refresh metadata if needed.');
+            } else if (def.IncludedImdbIds && def.IncludedImdbIds.length) {
+                tips.push('These direct IMDb IDs only match Emby items that already have IMDb provider IDs.');
+            } else {
+                tips.push('Try fewer filters, choose a different library, or use Studio/Tags instead of Genre.');
+            }
+            return '<div style="margin-top:.5em;color:#ffcc66;"><b>No matches yet</b><ul style="margin:.35em 0 0 1.2em;">'
+                + tips.map(function (t) { return '<li>' + escText(t) + '</li>'; }).join('') + '</ul></div>';
+        }
+
+        function renderPreviewResponse(card, data) {
+            var items = data.Items || [];
+            var rows = items.map(function (i) {
+                return '<tr><td>' + escText(i.Name || '') + '</td><td>' + escText(i.Year || '') + '</td><td>' + escText(i.Type || '') + '</td></tr>';
+            }).join('');
+            var table = rows ? '<div style="overflow:auto;margin-top:.45em;"><table class="detailTable" style="width:100%;"><thead><tr><th>Title</th><th>Year</th><th>Type</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '';
+            var warnings = (data.Warnings || []).map(function (w) {
+                return '<li>' + escText(w) + '</li>';
+            }).join('');
+            var warningHtml = warnings ? '<div style="margin-top:.5em;color:#ffcc66;"><b>Warnings</b><ul style="margin:.35em 0 0 1.2em;">' + warnings + '</ul></div>' : '';
+            var def = readCard(card);
+            var emptyHtml = (data.Count || 0) === 0 ? emptyPreviewHelp(def) : '';
+            setPreview(card, '<b>' + (data.Count || 0) + ' item(s)</b> matched' + table + emptyHtml + warningHtml);
+            updateOverviewPreview(parseInt(card.getAttribute('data-index') || '0', 10), (data.Count || 0) + ' item(s)', !!warnings || (data.Count || 0) === 0);
+        }
+
+        function addPreset(kind, previewAfterAdd) {
+            var defs = readScheduledCollectionsFromEditor();
+            defs.push(presetDefinition(kind));
+            renderScheduledCollections(defs);
+            form.elements.chkEnableScheduledCollections.checked = true;
+            renderSetupChecklist(readScheduledCollectionsFromEditor());
+            if (previewAfterAdd) {
+                var card = divScheduledEditor.querySelector('.cmScheduledCard[data-index="' + (defs.length - 1) + '"]');
+                if (card) previewCard(card);
+            }
         }
 
         function renderCheckboxList(container, items, selectedValues, name) {
@@ -275,8 +394,8 @@ define([
                 + '<div style="display:flex;justify-content:space-between;gap:1em;align-items:center;flex-wrap:wrap;">'
                 + '<label><input is="emby-checkbox" type="checkbox" class="cmSchedEnabled"' + (def.Enabled !== false ? ' checked="checked"' : '') + ' /><span>Enabled</span></label>'
                 + '<div style="display:flex;gap:.5em;flex-wrap:wrap;">'
-                + '<button is="emby-button" type="button" class="cmPreviewScheduled"><span>Preview</span></button>'
-                + '<button is="emby-button" type="button" class="cmRunScheduled"><span>Save & Run This</span></button>'
+                + '<button is="emby-button" type="button" class="cmPreviewScheduled"><span>Preview First</span></button>'
+                + '<button is="emby-button" type="button" class="cmRunScheduled raised"><span>Create Collection</span></button>'
                 + '<button is="emby-button" type="button" class="cmDuplicateScheduled"><span>Duplicate</span></button>'
                 + '<button is="emby-button" type="button" class="cmRemoveScheduled"><span>Remove</span></button>'
                 + '</div></div>'
@@ -288,7 +407,7 @@ define([
                 + '<option value="Movies"' + (def.ContentType === 'Movies' ? ' selected' : '') + '>Movies only</option>'
                 + '<option value="TvShows"' + (def.ContentType === 'TvShows' ? ' selected' : '') + '>TV shows only</option>'
                 + '</select></label>'
-                + '<label><span>IMDb / MDBList source</span><br /><input class="cmSchedMdblistListPath" type="text" value="' + escAttr(def.MdblistListPath || '') + '" placeholder="MDBList link/ID, or use IMDb IDs below" /></label>'
+                + '<label><span>IMDb / MDBList source</span><br /><input class="cmSchedMdblistListPath" type="text" value="' + escAttr(def.MdblistListPath || '') + '" placeholder="MDBList link/ID, or use IMDb IDs below" /><div class="cmSourceHelper fieldDescription" style="margin-top:.3em;">' + escText(friendlySourceLabel(def)) + '</div></label>'
                 + '</div>'
                 + '<details class="cmAdvancedOptions" style="margin-top:.9em;"><summary style="cursor:pointer;font-weight:600;">More options: filters, schedule, libraries</summary>'
                 + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75em;margin-top:.75em;">'
@@ -323,6 +442,7 @@ define([
 
         function renderScheduledCollections(definitions) {
             var defs = definitions || [];
+            renderSetupChecklist(defs);
             renderScheduledOverview(defs);
             divScheduledEditor.innerHTML = defs.length
                 ? defs.map(collectionCardHtml).join('')
@@ -344,8 +464,7 @@ define([
             if (def.IncludedTags && def.IncludedTags.length) parts.push('Tag: ' + def.IncludedTags.slice(0, 2).join(', '));
             if (def.IncludedYears && def.IncludedYears.length) parts.push('Year: ' + def.IncludedYears.slice(0, 2).join(', '));
             if (def.IncludedOfficialRatings && def.IncludedOfficialRatings.length) parts.push('Rating: ' + def.IncludedOfficialRatings.slice(0, 2).join(', '));
-            if (def.IncludedImdbIds && def.IncludedImdbIds.length) parts.push('IMDb IDs: ' + def.IncludedImdbIds.length);
-            if (def.MdblistListPath) parts.push('MDBList: ' + def.MdblistListPath);
+            if ((def.IncludedImdbIds && def.IncludedImdbIds.length) || def.MdblistListPath) parts.push(friendlySourceLabel(def));
             if (def.PlayState && def.PlayState !== 'Any') parts.push(def.PlayState);
             if (def.IsFavorite && def.IsFavorite !== 'Any') parts.push(def.IsFavorite === 'Yes' ? 'Favorites' : 'Not favorites');
             if (def.SortBy === 'DateCreatedDescending') parts.push('Recently added first');
@@ -498,7 +617,7 @@ define([
         function onSubmit(ev) {
             ev.preventDefault();
             saveConfig().then(function () {
-                Dashboard.alert('Settings saved. Use Preview, Save & Run This, or Run All Collections when you want to make collection changes.');
+                Dashboard.alert('Settings saved. Use Preview First for no-change checks, Create Collection for one custom collection, or Run All Collections for the full task.');
             }).catch(function () {});
             return false;
         }
@@ -521,22 +640,14 @@ define([
         function previewCard(card) {
             var def = readCard(card);
             if (!def.Name) { setPreview(card, 'Name the collection first.'); return; }
-            setPreview(card, 'Previewing…');
-            apiPost('CollectionManager/ScheduledCollections/Preview', def).then(function (r) {
+            setPreview(card, 'Saving settings and previewing…');
+            saveConfig().then(function () {
+                return apiPost('CollectionManager/ScheduledCollections/Preview', def);
+            }).then(function (r) {
                 var data = typeof r === 'string' ? JSON.parse(r || '{}') : r;
-                var items = data.Items || [];
-                var rows = items.map(function (i) {
-                    return '<tr><td>' + escText(i.Name || '') + '</td><td>' + escText(i.Year || '') + '</td><td>' + escText(i.Type || '') + '</td></tr>';
-                }).join('');
-                var table = rows ? '<div style="overflow:auto;margin-top:.45em;"><table class="detailTable" style="width:100%;"><thead><tr><th>Title</th><th>Year</th><th>Type</th></tr></thead><tbody>' + rows + '</tbody></table></div>' : '';
-                var warnings = (data.Warnings || []).map(function (w) {
-                    return '<li>' + escText(w) + '</li>';
-                }).join('');
-                var warningHtml = warnings ? '<div style="margin-top:.5em;color:#ffcc66;"><b>Warnings</b><ul style="margin:.35em 0 0 1.2em;">' + warnings + '</ul></div>' : '';
-                setPreview(card, '<b>' + (data.Count || 0) + ' item(s)</b> matched' + table + warningHtml);
-                updateOverviewPreview(parseInt(card.getAttribute('data-index') || '0', 10), (data.Count || 0) + ' item(s)', !!warnings);
+                renderPreviewResponse(card, data);
             }, function () {
-                setPreview(card, 'Preview failed. Save the settings and try again.');
+                setPreview(card, 'Preview failed. Check the setup checklist, save settings, and try again.');
             });
         }
 
@@ -571,13 +682,17 @@ define([
             if (ev.target.closest && ev.target.closest('.cmRemoveToken')) {
                 var chip = ev.target.closest('.cmTokenChip');
                 if (chip) chip.parentNode.removeChild(chip);
+                if (card) renderSourceHelper(card);
                 renderScheduledOverview(readScheduledCollectionsFromEditor());
+                renderSetupChecklist(readScheduledCollectionsFromEditor());
                 return;
             }
             if (ev.target.closest && ev.target.closest('.cmAddToken')) {
                 var btn = ev.target.closest('.cmAddToken');
                 addToken(card, btn.getAttribute('data-field'));
+                if (card) renderSourceHelper(card);
                 renderScheduledOverview(readScheduledCollectionsFromEditor());
+                renderSetupChecklist(readScheduledCollectionsFromEditor());
                 return;
             }
             if (!card) return;
@@ -609,28 +724,34 @@ define([
                 max.disabled = ev.target.checked;
                 if (ev.target.checked) max.value = '';
             }
+            var changedCard = ev.target.closest ? ev.target.closest('.cmScheduledCard') : null;
+            if (changedCard) renderSourceHelper(changedCard);
             renderScheduledOverview(readScheduledCollectionsFromEditor());
+            renderSetupChecklist(readScheduledCollectionsFromEditor());
         });
 
         divScheduledEditor.addEventListener('input', function (ev) {
             if (ev.target.classList && ev.target.classList.contains('cmTokenInput')) {
                 updateTokenSuggestions(ev.target);
             }
+            var inputCard = ev.target.closest ? ev.target.closest('.cmScheduledCard') : null;
+            if (inputCard) renderSourceHelper(inputCard);
             renderScheduledOverview(readScheduledCollectionsFromEditor());
+            renderSetupChecklist(readScheduledCollectionsFromEditor());
         });
 
         divScheduledEditor.addEventListener('keydown', function (ev) {
             if (ev.key === 'Enter' && ev.target.classList && ev.target.classList.contains('cmTokenInput')) {
                 ev.preventDefault();
-                addToken(ev.target.closest('.cmScheduledCard'), ev.target.getAttribute('data-field'));
+                var keyCard = ev.target.closest('.cmScheduledCard');
+                addToken(keyCard, ev.target.getAttribute('data-field'));
+                if (keyCard) renderSourceHelper(keyCard);
+                renderSetupChecklist(readScheduledCollectionsFromEditor());
             }
         });
 
         btnAddScheduledCollection.addEventListener('click', function () {
-            var defs = readScheduledCollectionsFromEditor();
-            defs.push(presetDefinition(selScheduledPreset.value));
-            renderScheduledCollections(defs);
-            form.elements.chkEnableScheduledCollections.checked = true;
+            addPreset(selScheduledPreset.value, false);
         });
 
         if (txtQuickScheduledSource) {
@@ -650,8 +771,40 @@ define([
                 defs.push(simpleCollectionDefinition(txtQuickScheduledName.value, source));
                 renderScheduledCollections(defs);
                 form.elements.chkEnableScheduledCollections.checked = true;
-                divQuickScheduledHint.innerHTML = escText(simpleCollectionHint(source) + ' Collection added below. Click Preview to check matches.');
+                renderSetupChecklist(readScheduledCollectionsFromEditor());
+                divQuickScheduledHint.innerHTML = escText(simpleCollectionHint(source) + ' Collection added below. Click Preview First to check matches.');
                 txtQuickScheduledSource.value = '';
+            });
+        }
+
+        if (divFeaturedExamples) {
+            divFeaturedExamples.addEventListener('click', function (ev) {
+                var btn = ev.target.closest ? ev.target.closest('.cmFeaturedPreset') : null;
+                if (!btn) return;
+                addPreset(btn.getAttribute('data-preset') || 'custom', true);
+            });
+        }
+
+        if (btnTestMdblistApiKey) {
+            btnTestMdblistApiKey.addEventListener('click', function () {
+                var key = (form.elements.txtMdblistApiKey.value || '').trim();
+                if (!key) {
+                    divMdblistApiKeyStatus.innerHTML = '<span style="color:#ffcc66;">⚠ Enter an MDBList API key first.</span>';
+                    return;
+                }
+                divMdblistApiKeyStatus.innerHTML = 'Testing MDBList…';
+                apiPost('CollectionManager/ScheduledCollections/TestMdblistApiKey', { ApiKey: key, ListPath: 'official:movies/moviemeter' }).then(function (r) {
+                    var data = typeof r === 'string' ? JSON.parse(r || '{}') : r;
+                    divMdblistApiKeyStatus.innerHTML = '<span style="color:' + (data.Success ? '#7bd88f' : '#ffcc66') + ';font-weight:700;">' + (data.Success ? '✓' : '⚠') + '</span> ' + escText(data.Message || (data.Success ? 'Connected.' : 'Test failed.'));
+                }, function () {
+                    divMdblistApiKeyStatus.innerHTML = '<span style="color:#ffcc66;">⚠ MDBList test failed. Check the key and try again.</span>';
+                });
+            });
+        }
+
+        if (form.elements.txtMdblistApiKey) {
+            form.elements.txtMdblistApiKey.addEventListener('input', function () {
+                renderSetupChecklist(readScheduledCollectionsFromEditor());
             });
         }
 
@@ -670,6 +823,9 @@ define([
         });
 
         form.addEventListener('submit', onSubmit);
+        form.elements.chkEnableScheduledCollections.addEventListener('change', function () {
+            renderSetupChecklist(readScheduledCollectionsFromEditor());
+        });
 
         view.addEventListener('viewshow', function () {
             loading.show();

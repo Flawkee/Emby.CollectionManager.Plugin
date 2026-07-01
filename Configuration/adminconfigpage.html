@@ -11,7 +11,7 @@
                 <h1>Collection Manager</h1>
 
                 <p>
-                    Saving this page stores settings only. Use <b>Preview</b> for no-change checks, <b>Save &amp; Run This</b> for one custom collection, or <b>Run All Collections</b> for the full Collection Manager task.
+                    Saving this page stores settings only. Use <b>Preview First</b> for no-change checks, <b>Create Collection</b> for one custom collection, or <b>Run All Collections</b> for the full Collection Manager task.
                     The task processes phases in this order: Dynamic User Playlists → Movie Franchises → TV Universes → Streaming Collections → Custom Collections.
                 </p>
                 <p>
@@ -154,6 +154,24 @@
                             Optional ACdb.tv-style list integration. Required for ready-made MDBList presets like Top 100 Movies and for imported IMDb watchlists/lists.
                             Paste a MDBList numeric ID, username/list-name, official:slug, external:id, or mdblist.com list URL into a custom collection card only if you need a custom source.
                         </div>
+                        <div style="display:flex;gap:.75em;align-items:center;flex-wrap:wrap;margin-top:.75em;">
+                            <button is="emby-button" type="button" id="btnTestMdblistApiKey"><span>Test API Key</span></button>
+                            <span id="divMdblistApiKeyStatus" class="fieldDescription">Tests with the Top 100 Movies source and does not save or display the key.</span>
+                        </div>
+                    </div>
+                    <div class="inputContainer" style="border:1px solid #4f6f9f;border-radius:10px;padding:1em;background:rgba(70,130,220,.10);">
+                        <h3 style="margin-top:0;">Featured examples</h3>
+                        <div class="fieldDescription" style="margin-bottom:.75em;">
+                            One-click starters with plain-English names. Add one, preview it, then Create Collection when it looks right.
+                        </div>
+                        <div id="divFeaturedScheduledExamples" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75em;">
+                            <button is="emby-button" type="button" id="btnCreateTop100Movies" class="raised cmFeaturedPreset" data-preset="top-100-movies"><span>Create Top 100 Movies</span></button>
+                            <button is="emby-button" type="button" class="cmFeaturedPreset" data-preset="popular-movies"><span>Popular Movies</span></button>
+                            <button is="emby-button" type="button" class="cmFeaturedPreset" data-preset="top-100-tv"><span>Top 100 TV Shows</span></button>
+                            <button is="emby-button" type="button" class="cmFeaturedPreset" data-preset="mdblist-imdb"><span>IMDb Watchlist</span></button>
+                            <button is="emby-button" type="button" class="cmFeaturedPreset" data-preset="short-movies"><span>Short Movies</span></button>
+                            <button is="emby-button" type="button" class="cmFeaturedPreset" data-preset="recent-movies"><span>Recently Added</span></button>
+                        </div>
                     </div>
                     <div class="inputContainer" style="border:1px solid #444;border-radius:10px;padding:1em;background:rgba(255,255,255,.04);">
                         <h3 style="margin-top:0;">Quick add from IMDb / MDBList</h3>
@@ -163,7 +181,7 @@
                         <div style="display:grid;grid-template-columns:minmax(180px,260px) minmax(260px,1fr) auto;gap:.75em;align-items:end;">
                             <label>Collection name<br /><input id="txtQuickScheduledName" type="text" placeholder="IMDb Watchlist" /></label>
                             <label>IMDb / MDBList link or IDs<br /><input id="txtQuickScheduledSource" type="text" placeholder="tt0111161, imdb.com/title/..., mdblist.com/lists/..." /></label>
-                            <button is="emby-button" type="button" id="btnQuickAddScheduledCollection" class="raised"><span>Create</span></button>
+                            <button is="emby-button" type="button" id="btnQuickAddScheduledCollection" class="raised"><span>Create collection</span></button>
                         </div>
                         <div id="divQuickScheduledHint" class="fieldDescription" style="margin-top:.65em;"></div>
                     </div>
@@ -201,6 +219,7 @@
                             <button is="emby-button" type="button" id="btnRunAllScheduledCollections"><span>Run all collections</span></button>
                         </div>
                         <div class="fieldDescription" style="margin-bottom:1em;">Tip: leave filters blank to include everything in the selected libraries/content type.</div>
+                        <div id="divScheduledSetupChecklist" style="margin-bottom:1em;"></div>
                         <div id="divScheduledCollectionsOverview" style="margin-bottom:1em;"></div>
 
                         <div id="divScheduledCollectionsEditor"></div>
