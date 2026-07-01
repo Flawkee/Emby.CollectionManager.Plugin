@@ -55,6 +55,7 @@ namespace CollectionManager.Plugin.Services
     {
         public int Count { get; set; }
         public List<ScheduledCollectionPreviewItem> Items { get; set; } = new List<ScheduledCollectionPreviewItem>();
+        public List<string> Warnings { get; set; } = new List<string>();
     }
 
     public class ScheduledCollectionPreviewItem
@@ -130,7 +131,8 @@ namespace CollectionManager.Plugin.Services
                     Name = i.Name ?? string.Empty,
                     Type = i.GetType().Name,
                     Year = ReadNullableInt(i, "ProductionYear")
-                }).ToList()
+                }).ToList(),
+                Warnings = ScheduledCollectionPreviewWarnings.Build(request, items.Count, DateTimeOffset.Now)
             };
         }
 

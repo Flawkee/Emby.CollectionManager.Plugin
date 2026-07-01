@@ -380,7 +380,11 @@ define([
                 var data = typeof r === 'string' ? JSON.parse(r || '{}') : r;
                 var items = data.Items || [];
                 var sample = items.map(function (i) { return escText(i.Name + (i.Year ? ' (' + i.Year + ')' : '')); }).join(', ');
-                setPreview(card, '<b>' + (data.Count || 0) + ' item(s)</b> matched' + (sample ? '<br />' + sample : ''));
+                var warnings = (data.Warnings || []).map(function (w) {
+                    return '<li>' + escText(w) + '</li>';
+                }).join('');
+                var warningHtml = warnings ? '<div style="margin-top:.5em;color:#ffcc66;"><b>Warnings</b><ul style="margin:.35em 0 0 1.2em;">' + warnings + '</ul></div>' : '';
+                setPreview(card, '<b>' + (data.Count || 0) + ' item(s)</b> matched' + (sample ? '<br />' + sample : '') + warningHtml);
             }, function () {
                 setPreview(card, 'Preview failed. Save the settings and try again.');
             });
