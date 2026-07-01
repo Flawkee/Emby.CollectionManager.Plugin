@@ -16,7 +16,6 @@ define([
         var divScheduledEditor = view.querySelector('#divScheduledCollectionsEditor');
         var selScheduledPreset = view.querySelector('#selScheduledPreset');
         var btnAddScheduledCollection = view.querySelector('#btnAddScheduledCollection');
-        var btnApplyScheduledJson = view.querySelector('#btnApplyScheduledJson');
 
         function escAttr(s) {
             return (s == null ? '' : String(s))
@@ -107,7 +106,6 @@ define([
             divScheduledEditor.innerHTML = defs.length
                 ? defs.map(collectionCardHtml).join('')
                 : '<div class="fieldDescription" style="margin-bottom:1em;">No scheduled collections yet. Pick a preset and click <b>Add collection</b>.</div>';
-            form.elements.txtScheduledCollections.value = JSON.stringify(defs, null, 2);
         }
 
         function readScheduledCollectionsFromEditor() {
@@ -143,9 +141,7 @@ define([
             }).filter(function (def) { return def.Name.length > 0; });
         }
 
-        function syncScheduledJson() {
-            form.elements.txtScheduledCollections.value = JSON.stringify(readScheduledCollectionsFromEditor(), null, 2);
-        }
+        function syncScheduledJson() { }
 
         function applyConfigToForm(cfg) {
             form.elements.chkEnableDynamic.checked        = !!cfg.EnableDynamicUserPlaylists;
@@ -226,16 +222,6 @@ define([
             renderScheduledCollections(defs);
             form.elements.chkEnableScheduledCollections.checked = true;
         });
-        btnApplyScheduledJson.addEventListener('click', function () {
-            try {
-                var defs = JSON.parse(form.elements.txtScheduledCollections.value || '[]');
-                if (!Array.isArray(defs)) throw new Error('Scheduled collections must be a JSON array.');
-                renderScheduledCollections(defs);
-            } catch (err) {
-                Dashboard.alert({ title: 'Invalid JSON', message: err.message || String(err) });
-            }
-        });
-
         form.addEventListener('submit', onSubmit);
         view.addEventListener('viewshow', function () {
             loading.show();
