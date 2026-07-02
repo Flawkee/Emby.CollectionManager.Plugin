@@ -60,6 +60,7 @@ namespace CollectionManager.Plugin.Helpers
 
         public async Task<int> BuildScheduledCollectionAsync(ScheduledCollectionDefinition def, DateTimeOffset now, CancellationToken cancellationToken)
         {
+            def = ScheduledCollectionSimpleOneClickPresets.Normalize(def);
             var collectionHelper = CollectionHelper.Instance;
             if (collectionHelper == null)
             {
@@ -104,6 +105,7 @@ namespace CollectionManager.Plugin.Helpers
 
         public IEnumerable<BaseItem> GetMatchingItems(ScheduledCollectionDefinition def, string? mdblistApiKeyOverride = null)
         {
+            def = ScheduledCollectionSimpleOneClickPresets.Normalize(def);
             if (string.Equals(def.MatchMode, "Any", StringComparison.OrdinalIgnoreCase) && HasAnyOptionalFilter(def))
                 return GetAnyFilterItems(def, mdblistApiKeyOverride);
 
