@@ -146,7 +146,8 @@ namespace CollectionManager.Plugin.Services
             var previewMdblistApiKey = !string.IsNullOrWhiteSpace(request.MdblistApiKey)
                 ? request.MdblistApiKey
                 : (Plugin.Instance?.Options?.MdblistApiKey ?? string.Empty);
-            var items = helper.GetMatchingItems(request, previewMdblistApiKey).ToList();
+            var normalizedRequest = ScheduledCollectionSimpleOneClickPresets.Normalize(request);
+            var items = helper.GetMatchingItems(normalizedRequest, previewMdblistApiKey).ToList();
             return new ScheduledCollectionPreviewResponse
             {
                 Count = items.Count,
@@ -157,7 +158,7 @@ namespace CollectionManager.Plugin.Services
                     Type = i.GetType().Name,
                     Year = ReadNullableInt(i, "ProductionYear")
                 }).ToList(),
-                Warnings = ScheduledCollectionPreviewWarnings.Build(request, items.Count, DateTimeOffset.Now, !string.IsNullOrWhiteSpace(previewMdblistApiKey))
+                Warnings = ScheduledCollectionPreviewWarnings.Build(normalizedRequest, items.Count, DateTimeOffset.Now, !string.IsNullOrWhiteSpace(previewMdblistApiKey))
             };
         }
 
