@@ -77,8 +77,8 @@
                 <h1>Collection Manager</h1>
 
                 <p>
-                    Saving this page stores settings only. Use <b>Preview First</b> for no-change checks, <b>Create Collection</b> for one custom collection, or <b>Run All Collections</b> for the full Collection Manager task.
-                    The task processes phases in this order: Dynamic User Playlists → Movie Franchises → TV Universes → Streaming Collections → Custom Collections.
+                    Choose the collection types you want and save. Simple Collection buttons below create ready-made collections automatically.
+                    The task processes Dynamic User Playlists, Movie Franchises, TV Universes, Streaming Collections, and Simple Collections.
                 </p>
                 <p>
                     Disabling a feature here turns it OFF for every user and removes any matching playlists they already have.
@@ -204,21 +204,11 @@
                     </div>
 
                     <h2 style="margin-top:2em;">Simple Collections</h2>
-                    <div class="checkboxContainer checkboxContainer-withDescription">
-                        <label>
-                            <input is="emby-checkbox" type="checkbox" id="chkEnableScheduledCollections" name="chkEnableScheduledCollections" />
-                            <span>Create custom collections</span>
-                        </label>
-                        <div class="fieldDescription checkboxFieldDescription">
-                            Pick one of the buttons below and Collection Manager will save it, preview it, and create it for you.
-                            Use More options only if you want to edit filters or import an external IMDb/MDBList list.
-                        </div>
+                    <div class="fieldDescription" style="margin-bottom:1em;">
+                        Pick a collection. Collection Manager will save it, check it, and create it automatically.
                     </div>
                     <div class="inputContainer" style="border:1px solid #4f6f9f;border-radius:10px;padding:1em;background:rgba(70,130,220,.10);">
                         <h3 style="margin-top:0;">One-click collections</h3>
-                        <div class="fieldDescription" style="margin-bottom:.75em;">
-                            These use your existing Emby library metadata and do not need an MDBList API key.
-                        </div>
                         <div id="divFeaturedScheduledExamples" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75em;">
                             <button type="button" id="btnCreateTop100Movies" class="cmButton cmButtonPrimary cmFeaturedPreset" data-preset="top-100-movies">Top Rated Movies</button>
                             <button type="button" class="cmButton cmButtonBlock cmFeaturedPreset" data-preset="recent-movies">Recently Added Movies</button>
@@ -229,71 +219,22 @@
                         </div>
                         <div id="divFeaturedScheduledStatus" class="fieldDescription" style="margin-top:.75em;"></div>
                     </div>
-                    <details class="inputContainer" style="border:1px solid #444;border-radius:10px;padding:1em;background:rgba(255,255,255,.04);">
-                        <summary style="cursor:pointer;font-weight:700;">More options: edit filters, schedules, or IMDb/MDBList imports</summary>
-                        <div style="margin-top:1em;">
-                            <input is="emby-input" id="txtMdblistApiKey" name="txtMdblistApiKey" type="password" label="MDBList API Key (optional):" />
-                            <div class="fieldDescription">
-                                Optional ACdb.tv-style list integration. Only needed for imported IMDb watchlists/lists or custom MDBList sources.
-                                Paste a MDBList numeric ID, username/list-name, official:slug, external:id, or mdblist.com list URL into a custom collection card only if you need a custom source.
-                            </div>
-                            <div style="display:flex;gap:.75em;align-items:center;flex-wrap:wrap;margin-top:.75em;">
-                                <button type="button" id="btnTestMdblistApiKey" class="cmButton">Test API Key</button>
-                                <span id="divMdblistApiKeyStatus" class="fieldDescription">Tests with MDBList and does not save or display the key.</span>
-                            </div>
-                        </div>
-                        <div style="border:1px solid #444;border-radius:10px;padding:1em;background:rgba(255,255,255,.04);margin-top:1em;">
-                            <h3 style="margin-top:0;">Quick add from IMDb / MDBList</h3>
-                            <div class="fieldDescription" style="margin-bottom:.75em;">
-                                Paste IMDb title URLs/IDs, or paste a MDBList link/ID for an imported IMDb watchlist/list. We'll set up the collection for you; preview before running.
-                            </div>
-                            <div style="display:grid;grid-template-columns:minmax(180px,260px) minmax(260px,1fr) auto;gap:.75em;align-items:end;">
-                                <label>Collection name<br /><input id="txtQuickScheduledName" type="text" placeholder="IMDb Watchlist" /></label>
-                                <label>IMDb / MDBList link or IDs<br /><input id="txtQuickScheduledSource" type="text" placeholder="tt0111161, imdb.com/title/..., mdblist.com/lists/..." /></label>
-                                <button type="button" id="btnQuickAddScheduledCollection" class="cmButton cmButtonPrimary">Create collection</button>
-                            </div>
-                            <div id="divQuickScheduledHint" class="fieldDescription" style="margin-top:.65em;"></div>
-                        </div>
-                        <div style="margin-top:1em;">
-                            <div style="display:flex;gap:.75em;align-items:end;flex-wrap:wrap;margin-bottom:1em;">
-                                <label style="min-width:230px;">
-                                    <span class="fieldDescription" style="display:block;margin-bottom:.35em;">Start with a preset</span>
-                                    <select id="selScheduledPreset" name="selScheduledPreset" is="emby-select" label="Preset">
-                                        <option value="top-100-movies">Top Rated Movies</option>
-                                        <option value="recent-movies">Recently Added Movies</option>
-                                        <option value="unwatched">Unwatched Movies</option>
-                                        <option value="kids">Family / Kids</option>
-                                        <option value="short-movies">Short Movies Under 90 Minutes</option>
-                                        <option value="favorites">Favorites</option>
-                                        <option value="recent-tv">Recently Added TV</option>
-                                        <option value="halloween">Halloween Horror</option>
-                                        <option value="kids-halloween">Kids Halloween</option>
-                                        <option value="holiday">Holiday Movies</option>
-                                        <option value="holiday-family">Holiday Family Movies</option>
-                                        <option value="friday-action">Friday Action Night</option>
-                                        <option value="weekend-movie-night">Weekend Movie Night</option>
-                                        <option value="new-releases">New Releases</option>
-                                        <option value="unwatched-family">Unwatched Family Movies</option>
-                                        <option value="awards">Oscar / Award Winners</option>
-                                        <option value="popular-movies">MDBList Popular Movies (requires key)</option>
-                                        <option value="streaming-chart-movies">MDBList Streaming Chart Movies (requires key)</option>
-                                        <option value="top-100-tv">MDBList Top 100 TV Shows (requires key)</option>
-                                        <option value="mdblist-imdb">MDBList / IMDb Watchlist</option>
-                                        <option value="4k">4K Movies</option>
-                                        <option value="4k-hdr">4K HDR Movies</option>
-                                        <option value="custom">Blank Custom Collection</option>
-                                    </select>
-                                </label>
-                                <button type="button" id="btnAddScheduledCollection" class="cmButton cmButtonPrimary">Add collection</button>
-                                <button type="button" id="btnRunAllScheduledCollections" class="cmButton">Run all collections</button>
-                            </div>
-                            <div class="fieldDescription" style="margin-bottom:1em;">Tip: leave filters blank to include everything in the selected libraries/content type.</div>
-                            <div id="divScheduledSetupChecklist" style="margin-bottom:1em;"></div>
-                            <div id="divScheduledCollectionsOverview" style="margin-bottom:1em;"></div>
-
-                            <div id="divScheduledCollectionsEditor"></div>
-                        </div>
-                    </details>
+                    <div style="display:none;" aria-hidden="true">
+                        <input type="checkbox" id="chkEnableScheduledCollections" name="chkEnableScheduledCollections" />
+                        <input type="password" id="txtMdblistApiKey" name="txtMdblistApiKey" value="" />
+                        <input type="text" id="txtQuickScheduledName" value="" />
+                        <input type="text" id="txtQuickScheduledSource" value="" />
+                        <button type="button" id="btnTestMdblistApiKey"></button>
+                        <button type="button" id="btnQuickAddScheduledCollection"></button>
+                        <button type="button" id="btnAddScheduledCollection"></button>
+                        <button type="button" id="btnRunAllScheduledCollections"></button>
+                        <select id="selScheduledPreset" name="selScheduledPreset"><option value="top-100-movies">Top Rated Movies</option></select>
+                        <div id="divMdblistApiKeyStatus"></div>
+                        <div id="divQuickScheduledHint"></div>
+                        <div id="divScheduledSetupChecklist"></div>
+                        <div id="divScheduledCollectionsOverview"></div>
+                        <div id="divScheduledCollectionsEditor"></div>
+                    </div>
 
                     <h2 style="margin-top:2em;">Diagnostics</h2>
                     <div class="checkboxContainer checkboxContainer-withDescription">

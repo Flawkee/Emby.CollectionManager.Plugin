@@ -424,7 +424,7 @@ define([
                 + '</select></label>'
                 + '<label><span>IMDb / MDBList source</span><br /><input class="cmSchedMdblistListPath" type="text" value="' + escAttr(def.MdblistListPath || '') + '" placeholder="MDBList link/ID, or use IMDb IDs below" /><div class="cmSourceHelper fieldDescription" style="margin-top:.3em;">' + escText(friendlySourceLabel(def)) + '</div></label>'
                 + '</div>'
-                + '<details class="cmAdvancedOptions" style="margin-top:.9em;"><summary style="cursor:pointer;font-weight:600;">More options: filters, schedule, libraries</summary>'
+                + '<details class="cmCollectionSettings" style="margin-top:.9em;"><summary style="cursor:pointer;font-weight:600;">Collection settings</summary>'
                 + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75em;margin-top:.75em;">'
                 + '<label>Match filters<br /><select class="cmSchedMatchMode">'
                 + '<option value="All"' + ((def.MatchMode || 'All') === 'All' ? ' selected' : '') + '>All filters</option>'
@@ -665,7 +665,7 @@ define([
             }).then(function (r) {
                 var preview = typeof r === 'string' ? JSON.parse(r || '{}') : r;
                 if (!preview || !preview.Count) {
-                    setStatus(statusEl || divFeaturedStatus, def.Name + ' saved, but preview found 0 matching items. Open More options to adjust filters.', false);
+                    setStatus(statusEl || divFeaturedStatus, def.Name + ' saved, but preview found 0 matching items. Try another collection or check the library metadata.', false);
                     return preview;
                 }
                 setStatus(statusEl || divFeaturedStatus, 'Creating ' + def.Name + ' from ' + preview.Count + ' matched item(s)…', true);
@@ -675,14 +675,14 @@ define([
                     return run;
                 });
             }, function () {
-                setStatus(statusEl || divFeaturedStatus, 'Could not save or preview this collection. Open More options and try Preview First.', false);
+                setStatus(statusEl || divFeaturedStatus, 'Could not create this collection. Try another collection or check the library metadata.', false);
             });
         }
 
         function onSubmit(ev) {
             ev.preventDefault();
             saveConfig().then(function () {
-                Dashboard.alert('Settings saved. One-click collections create immediately; More options are for advanced editing.');
+                Dashboard.alert('Settings saved. Simple Collection buttons create collections automatically.');
             }).catch(function () {});
             return false;
         }
