@@ -67,11 +67,25 @@ public sealed class ScheduledCollectionSimpleOneClickPresetTests
         Assert.Equal("All", normalized.MatchMode);
     }
 
-    [Fact]
-    public void IsKnownPresetName_ReturnsTrueForOneClickCollectionsThatCanBeSafelyReconciled()
+    [Theory]
+    [InlineData("Top Rated Movies")]
+    [InlineData("Recently Added Movies")]
+    [InlineData("Unwatched Movies")]
+    [InlineData("Family Movie Night")]
+    [InlineData("Holiday Movies")]
+    [InlineData("Halloween Movies")]
+    [InlineData("Friday Action Night")]
+    [InlineData("Weekend Movie Night")]
+    [InlineData("Favorites")]
+    [InlineData("Kids Collection")]
+    public void IsKnownPresetName_ReturnsTrueForOneClickCollectionsThatShouldNotBeRebuiltAfterManualDelete(string name)
     {
-        Assert.True(ScheduledCollectionSimpleOneClickPresets.IsKnownPresetName("Holiday Movies"));
-        Assert.True(ScheduledCollectionSimpleOneClickPresets.IsKnownPresetName("Friday Action Night"));
+        Assert.True(ScheduledCollectionSimpleOneClickPresets.IsKnownPresetName(name));
+    }
+
+    [Fact]
+    public void IsKnownPresetName_ReturnsFalseForManualCustomCollections()
+    {
         Assert.False(ScheduledCollectionSimpleOneClickPresets.IsKnownPresetName("My Manual Collection"));
     }
 }

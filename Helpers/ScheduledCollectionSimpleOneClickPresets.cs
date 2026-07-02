@@ -5,6 +5,50 @@ namespace CollectionManager.Plugin.Helpers
 {
     public static class ScheduledCollectionSimpleOneClickPresets
     {
+        private static readonly string[] OneClickPresetNames = new[]
+        {
+            "Top Rated Movies",
+            "Top Rated TV",
+            "Popular Movies",
+            "Streaming Chart Movies",
+            "Top 100 TV Shows",
+            "Halloween Movies",
+            "Kids Halloween",
+            "Holiday Movies",
+            "Family Holiday Movies",
+            "Friday Action Night",
+            "Weekend Movie Night",
+            "Short Movies Under 90 Minutes",
+            "Action Movies",
+            "Comedy Movies",
+            "Horror Movies",
+            "Sci-Fi Movies",
+            "Animated Movies",
+            "Documentaries",
+            "Drama Movies",
+            "Comedy TV",
+            "Animated TV",
+            "Kids TV",
+            "Documentary Series",
+            "Unwatched TV Shows",
+            "Kids Collection",
+            "Family Movie Night",
+            "G & PG Movies",
+            "Animated Family Movies",
+            "New Releases",
+            "New Movies This Year",
+            "New Movies Last Year",
+            "Recently Added Movies",
+            "Recently Added TV",
+            "Unwatched Movies",
+            "Unwatched Family Movies",
+            "Favorites",
+            "Award Winners",
+            "IMDb Watchlist",
+            "4K Movies",
+            "4K HDR Movies"
+        };
+
         public static ScheduledCollectionDefinition Normalize(ScheduledCollectionDefinition def)
         {
             if (def == null) return new ScheduledCollectionDefinition();
@@ -30,12 +74,8 @@ namespace CollectionManager.Plugin.Helpers
 
         public static bool IsKnownPresetName(string name)
         {
-            return string.Equals(name, "Halloween Movies", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "Kids Halloween", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "Holiday Movies", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "Family Holiday Movies", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "Friday Action Night", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(name, "Weekend Movie Night", StringComparison.OrdinalIgnoreCase);
+            return Array.Exists(OneClickPresetNames,
+                presetName => string.Equals(name, presetName, StringComparison.OrdinalIgnoreCase));
         }
     }
 }

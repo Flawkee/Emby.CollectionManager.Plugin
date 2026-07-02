@@ -34,7 +34,8 @@ public sealed class AdminSimpleCollectionsUiTests
         var recommendedButtonCount = CountOccurrences(recommendedHtml, "cmFeaturedPreset");
 
         Assert.InRange(recommendedButtonCount, 4, 6);
-        Assert.Contains("One click saves, previews, and creates", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("One click previews and creates the collection once", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("will not recreate it automatically", html, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -56,6 +57,16 @@ public sealed class AdminSimpleCollectionsUiTests
         Assert.Contains("btn.disabled = true", script, StringComparison.Ordinal);
         Assert.Contains("Creating…", script, StringComparison.Ordinal);
         Assert.Contains("btn.disabled = false", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void SimpleCollections_OneClickButtonsCreateWithoutPersistingScheduledDefinitions()
+    {
+        var script = ReadRepoFile("Configuration/adminconfigpage.js");
+
+        Assert.Contains("createDefinitionNow(presetDefinition(btn.getAttribute('data-preset') || 'custom'), divFeaturedStatus, false)", script, StringComparison.Ordinal);
+        Assert.Contains("It will not be recreated automatically if you delete it.", script, StringComparison.Ordinal);
+        Assert.Contains("createDefinitionNow(def, divQuickScheduledHint, true)", script, StringComparison.Ordinal);
     }
 
     [Fact]

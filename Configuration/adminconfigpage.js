@@ -838,34 +838,48 @@ define([
             el.innerHTML = '<span style="color:' + (good ? '#7bd88f' : '#ffcc66') + ';font-weight:700;">' + (good ? '✓' : '⚠') + '</span> ' + escText(message);
         }
 
-        function createDefinitionNow(def, statusEl) {
-            def = upsertScheduledDefinition(def);
-            setStatus(statusEl || divFeaturedStatus, 'Saving and previewing ' + def.Name + '…', true);
-            return saveConfig().then(function () {
+        function createDefinitionNow(def, statusEl, persistDefinition) {
+            def = migrateDefinition(def);
+            var targetStatus = statusEl || divFeaturedStatus;
+            var pending;
+            if (persistDefinition) {
+                def = upsertScheduledDefinition(def);
+                setStatus(targetStatus, 'Saving and previewing ' + def.Name + '…', true);
+                pending = saveConfig();
+            } else {
+                setStatus(targetStatus, 'Previewing ' + def.Name + '…', true);
+                pending = Promise.resolve();
+            }
+
+            return pending.then(function () {
                 var previewRequest = JSON.parse(JSON.stringify(def));
                 previewRequest.MdblistApiKey = (form.elements.txtMdblistApiKey.value || '').trim();
                 return apiPost('CollectionManager/ScheduledCollections/Preview', previewRequest);
             }).then(function (r) {
                 var preview = typeof r === 'string' ? JSON.parse(r || '{}') : r;
                 if (!preview || !preview.Count) {
-                    setStatus(statusEl || divFeaturedStatus, def.Name + ' saved, but preview found 0 matching items. Try another collection or check the library metadata.', false);
+                    setStatus(targetStatus, (persistDefinition ? def.Name + ' saved, but preview found 0 matching items.' : def.Name + ' preview found 0 matching items.') + ' Try another collection or check the library metadata.', false);
                     return preview;
                 }
-                setStatus(statusEl || divFeaturedStatus, 'Creating ' + def.Name + ' from ' + preview.Count + ' matched item(s)…', true);
+                setStatus(targetStatus, 'Creating ' + def.Name + ' from ' + preview.Count + ' matched item(s)…', true);
                 return apiPost('CollectionManager/ScheduledCollections/Run', def).then(function (runResponse) {
                     var run = typeof runResponse === 'string' ? JSON.parse(runResponse || '{}') : runResponse;
-                    setStatus(statusEl || divFeaturedStatus, run.Message || ('Created ' + def.Name + '.'), !!(!run || run.Success !== false));
+                    var message = run.Message || ('Created ' + def.Name + '.');
+                    if (!persistDefinition && (!run || run.Success !== false)) {
+                        message += ' It will not be recreated automatically if you delete it.';
+                    }
+                    setStatus(targetStatus, message, !!(!run || run.Success !== false));
                     return run;
                 });
             }, function () {
-                setStatus(statusEl || divFeaturedStatus, 'Could not create this collection. Try another collection or check the library metadata.', false);
+                setStatus(targetStatus, 'Could not create this collection. Try another collection or check the library metadata.', false);
             });
         }
 
         function onSubmit(ev) {
             ev.preventDefault();
             saveConfig().then(function () {
-                Dashboard.alert('Settings saved. Simple Collection buttons create collections automatically.');
+                Dashboard.alert('Settings saved. One-click Simple Collection buttons create collections once; saved Custom Collections rebuild during the task.');
             }).catch(function () {});
             return false;
         }
@@ -1022,7 +1036,7 @@ define([
                 renderSetupChecklist(readScheduledCollectionsFromEditor());
                 divQuickScheduledHint.innerHTML = escText(simpleCollectionHint(source) + ' Saving and previewing now…');
                 txtQuickScheduledSource.value = '';
-                createDefinitionNow(def, divQuickScheduledHint);
+                createDefinitionNow(def, divQuickScheduledHint, true);
             });
         }
 
@@ -1033,8 +1047,8 @@ define([
                 var originalHtml = btn.innerHTML;
                 btn.disabled = true;
                 btn.classList.add('is-disabled');
-                btn.innerHTML = '<span class="cmPresetTitle">Creating…</span><span class="cmPresetHint">Saving and checking matches</span>';
-                Promise.resolve(createDefinitionNow(presetDefinition(btn.getAttribute('data-preset') || 'custom'), divFeaturedStatus)).then(function () {
+                btn.innerHTML = '<span class="cmPresetTitle">Creating…</span><span class="cmPresetHint">Checking matches</span>';
+                Promise.resolve(createDefinitionNow(presetDefinition(btn.getAttribute('data-preset') || 'custom'), divFeaturedStatus, false)).then(function () {
                     btn.disabled = false;
                     btn.classList.remove('is-disabled');
                     btn.innerHTML = originalHtml;

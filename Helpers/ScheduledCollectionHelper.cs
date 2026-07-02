@@ -54,6 +54,12 @@ namespace CollectionManager.Plugin.Helpers
             foreach (var def in definitions ?? Enumerable.Empty<ScheduledCollectionDefinition>())
             {
                 if (cancellationToken.IsCancellationRequested) return;
+                if (def == null) continue;
+                if (ScheduledCollectionSimpleOneClickPresets.IsKnownPresetName(def.Name ?? string.Empty))
+                {
+                    DebugLog($"[CollectionManager/ScheduledCollections] Skipping one-click Simple Collection preset '{def.Name}' during scheduled task run");
+                    continue;
+                }
                 await BuildScheduledCollectionAsync(def, now, cancellationToken).ConfigureAwait(false);
             }
         }
