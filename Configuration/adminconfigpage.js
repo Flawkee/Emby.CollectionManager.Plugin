@@ -242,6 +242,8 @@ define([
             switch (kind) {
                 case 'top-100-movies':
                     return { Enabled: true, Name: 'Top Rated Movies', ContentType: 'Movies', SortBy: 'CommunityRatingDescending', MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'top-rated-tv':
+                    return { Enabled: true, Name: 'Top Rated TV', ContentType: 'TvShows', SortBy: 'CommunityRatingDescending', MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'popular-movies':
                     return { Enabled: true, Name: 'Popular Movies', ContentType: 'Movies', MdblistListPath: 'official:movies/popular', MaxItems: 50, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'streaming-chart-movies':
@@ -262,6 +264,20 @@ define([
                     return { Enabled: true, Name: 'Weekend Movie Night', ContentType: 'Movies', IncludedGenres: ['Action', 'Adventure', 'Comedy'], ActiveDaysOfWeek: ['Friday', 'Saturday'], MaxItems: 50, RemoveWhenInactive: true, MatchMode: 'Any' };
                 case 'short-movies':
                     return { Enabled: true, Name: 'Short Movies Under 90 Minutes', ContentType: 'Movies', MaxRuntimeMinutes: 90, MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'action-movies':
+                    return { Enabled: true, Name: 'Action Movies', ContentType: 'Movies', IncludedGenres: ['Action'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'comedy-movies':
+                    return { Enabled: true, Name: 'Comedy Movies', ContentType: 'Movies', IncludedGenres: ['Comedy'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'horror-movies':
+                    return { Enabled: true, Name: 'Horror Movies', ContentType: 'Movies', IncludedGenres: ['Horror'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'scifi-movies':
+                    return { Enabled: true, Name: 'Sci-Fi Movies', ContentType: 'Movies', IncludedGenres: ['Science Fiction', 'Sci-Fi'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'Any' };
+                case 'animated-movies':
+                    return { Enabled: true, Name: 'Animated Movies', ContentType: 'Movies', IncludedGenres: ['Animation'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'documentaries':
+                    return { Enabled: true, Name: 'Documentaries', ContentType: 'Movies', IncludedGenres: ['Documentary'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'drama-movies':
+                    return { Enabled: true, Name: 'Drama Movies', ContentType: 'Movies', IncludedGenres: ['Drama'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'kids':
                     return { Enabled: true, Name: 'Kids Collection', ContentType: 'Both', IncludedOfficialRatings: ['G', 'PG', 'TV-Y', 'TV-Y7'], RemoveWhenInactive: false, MatchMode: 'Any' };
                 case 'new-releases':
