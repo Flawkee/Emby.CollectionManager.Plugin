@@ -83,8 +83,13 @@ namespace CollectionManager.Plugin.Helpers
             var existing = FindCollection(def.Name);
             if (existing != null && !IsManagedCollection(existing))
             {
-                _logger.Warn($"[CollectionManager/ScheduledCollections] Skipping '{def.Name}' because an existing collection with that name is not marked as managed by Collection Manager.");
-                return 0;
+                if (!ScheduledCollectionSimpleOneClickPresets.IsKnownPresetName(def.Name))
+                {
+                    _logger.Warn($"[CollectionManager/ScheduledCollections] Skipping '{def.Name}' because an existing collection with that name is not marked as managed by Collection Manager.");
+                    return 0;
+                }
+
+                _logger.Info($"[CollectionManager/ScheduledCollections] Taking ownership of existing one-click collection '{def.Name}'");
             }
 
             var items = GetMatchingItems(def).ToArray();

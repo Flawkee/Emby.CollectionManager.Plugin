@@ -10,7 +10,7 @@ namespace CollectionManager.Plugin.Helpers
             if (def == null) return new ScheduledCollectionDefinition();
 
             var name = (def.Name ?? string.Empty).Trim();
-            if (IsLegacyScheduledOneClickPreset(name))
+            if (IsKnownPresetName(name))
             {
                 def.ActiveStart = string.Empty;
                 def.ActiveEnd = string.Empty;
@@ -28,7 +28,7 @@ namespace CollectionManager.Plugin.Helpers
             return def;
         }
 
-        private static bool IsLegacyScheduledOneClickPreset(string name)
+        public static bool IsKnownPresetName(string name)
         {
             return string.Equals(name, "Halloween Movies", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(name, "Kids Halloween", StringComparison.OrdinalIgnoreCase)

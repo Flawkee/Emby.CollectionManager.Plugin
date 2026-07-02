@@ -66,4 +66,12 @@ public sealed class ScheduledCollectionSimpleOneClickPresetTests
 
         Assert.Equal("All", normalized.MatchMode);
     }
+
+    [Fact]
+    public void IsKnownPresetName_ReturnsTrueForOneClickCollectionsThatCanBeSafelyReconciled()
+    {
+        Assert.True(ScheduledCollectionSimpleOneClickPresets.IsKnownPresetName("Holiday Movies"));
+        Assert.True(ScheduledCollectionSimpleOneClickPresets.IsKnownPresetName("Friday Action Night"));
+        Assert.False(ScheduledCollectionSimpleOneClickPresets.IsKnownPresetName("My Manual Collection"));
+    }
 }
