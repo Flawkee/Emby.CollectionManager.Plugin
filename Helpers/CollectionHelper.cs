@@ -198,9 +198,30 @@ namespace CollectionManager.Plugin.Helpers
 
                 if (existing != null)
                 {
-                    _logger.Debug($"[CollectionManager] Adding {itemInternalIds.Length} item(s) to existing '{collectionName}'");
-                    await cm.AddToCollection(existing.InternalId, itemInternalIds).ConfigureAwait(false);
-                    DebugLog($"[CollectionManager] AddToCollection complete. HasPrimaryImage={existing.HasImage(ImageType.Primary, 0)}");
+                    var isManaged = ScheduledCollectionManagedMarker.IsManaged(existing.Overview);
+                    var existingItemIds = existing.GetRecursiveChildren().Select(i => i.InternalId).ToArray();
+                    var syncPlan = ScheduledCollectionSyncPlanner.Build(itemInternalIds, existingItemIds, isManaged);
+
+                    if (syncPlan.ItemsToAdd.Length > 0)
+                    {
+                        _logger.Debug($"[CollectionManager] Adding {syncPlan.ItemsToAdd.Length} missing item(s) to existing '{collectionName}'");
+                        await cm.AddToCollection(existing.InternalId, syncPlan.ItemsToAdd).ConfigureAwait(false);
+                        DebugLog($"[CollectionManager] AddToCollection complete. HasPrimaryImage={existing.HasImage(ImageType.Primary, 0)}");
+                    }
+                    else
+                    {
+                        DebugLog($"[CollectionManager] Existing collection '{collectionName}' already contains all desired item(s)");
+                    }
+
+                    if (syncPlan.ItemsToRemove.Length > 0)
+                    {
+                        _logger.Info($"[CollectionManager] Removing {syncPlan.ItemsToRemove.Length} stale item(s) from managed collection '{collectionName}'");
+                        cm.RemoveFromCollection(existing, syncPlan.ItemsToRemove);
+                    }
+                    else if (syncPlan.HasUnmanagedStaleItems)
+                    {
+                        _logger.Info($"[CollectionManager] Dry-run only: would remove {syncPlan.ItemsThatWouldBeRemovedIfManaged.Length} stale item(s) from '{collectionName}', but it is not marked as managed");
+                    }
 
                     if (!existing.HasImage(ImageType.Primary, 0))
                         TrySetCollectionImage(existing, collectionName);

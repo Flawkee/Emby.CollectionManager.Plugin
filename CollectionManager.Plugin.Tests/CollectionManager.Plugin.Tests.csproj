@@ -17,6 +17,7 @@
     <Compile Include="..\Helpers\ScheduledCollectionManagedMarker.cs" Link="ScheduledCollectionManagedMarker.cs" />
     <Compile Include="..\Helpers\ScheduledCollectionPreviewWarnings.cs" Link="ScheduledCollectionPreviewWarnings.cs" />
     <Compile Include="..\Helpers\ScheduledCollectionRuntimeFilter.cs" Link="ScheduledCollectionRuntimeFilter.cs" />
+    <Compile Include="..\Helpers\ScheduledCollectionSyncPlanner.cs" Link="ScheduledCollectionSyncPlanner.cs" />
     <Compile Include="..\Helpers\ScheduledCollectionSimpleOneClickPresets.cs" Link="ScheduledCollectionSimpleOneClickPresets.cs" />
     <Compile Include="..\Helpers\ScheduledCollectionSortOptions.cs" Link="ScheduledCollectionSortOptions.cs" />
     <Compile Include="..\Helpers\ScheduledCollectionUserExperience.cs" Link="ScheduledCollectionUserExperience.cs" />
