@@ -22,4 +22,18 @@ public sealed class ScheduledCollectionRuntimeFilterTests
     {
         Assert.True(ScheduledCollectionRuntimeFilter.MatchesMaxRuntimeMinutes(null, 90));
     }
+
+    [Fact]
+    public void ShouldApplyTitleKeywordAsGlobalPostFilter_DisablesGlobalKeywordFilterForAnyMode()
+    {
+        Assert.False(ScheduledCollectionRuntimeFilter.ShouldApplyTitleKeywordAsGlobalPostFilter("Any"));
+        Assert.True(ScheduledCollectionRuntimeFilter.ShouldApplyTitleKeywordAsGlobalPostFilter("All"));
+    }
+
+    [Fact]
+    public void MatchesTitleKeyword_UsesCaseInsensitiveContainsAndIgnoresBlankKeywords()
+    {
+        Assert.True(ScheduledCollectionRuntimeFilter.MatchesTitleKeyword("A Nightmare on Elm Street", new[] { "", "nightmare" }));
+        Assert.False(ScheduledCollectionRuntimeFilter.MatchesTitleKeyword("Alien", new[] { "Halloween", "Scream" }));
+    }
 }

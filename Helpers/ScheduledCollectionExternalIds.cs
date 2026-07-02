@@ -10,6 +10,7 @@ namespace CollectionManager.Plugin.Helpers
     {
         private static readonly Regex ImdbIdRegex = new Regex(@"tt\d{7,10}", RegexOptions.IgnoreCase | RegexOptions.Compiled);
         private static readonly Regex MdblistJsonImdbRegex = new Regex("\\\"(?:imdb_id|imdb)\\\"\\s*:\\s*\\\"(tt\\d{7,10})\\\"", RegexOptions.IgnoreCase | RegexOptions.Compiled);
+        private static readonly Regex MdblistNextCursorRegex = new Regex("\\\"next_cursor\\\"\\s*:\\s*(?:\\\"((?:\\\\.|[^\\\"])*)\\\"|null)", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         public static string[] ExtractImdbIdsFromText(string text)
         {
@@ -39,6 +40,16 @@ namespace CollectionManager.Plugin.Helpers
         {
             var match = ImdbIdRegex.Match(value ?? string.Empty);
             return match.Success ? match.Value.ToLowerInvariant() : string.Empty;
+        }
+
+        public static string ExtractMdblistNextCursor(string json)
+        {
+            if (string.IsNullOrWhiteSpace(json)) return string.Empty;
+
+            var match = MdblistNextCursorRegex.Match(json);
+            if (!match.Success || !match.Groups[1].Success) return string.Empty;
+
+            return Regex.Unescape(match.Groups[1].Value);
         }
 
         public static ScheduledCollectionDefinition BuildSimpleDefinition(string name, string source)

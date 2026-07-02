@@ -138,7 +138,23 @@ namespace CollectionManager.Plugin.Helpers
                 }
             }
 
-            return ApplyPostProcessing(def, results, mdblistApiKeyOverride);
+            if (HasTitleKeywordFilter(def))
+            {
+                var titleQuery = BuildQuery(def, includeFilters: false, includeLimit: false);
+                foreach (var item in _libraryManager.GetItemList(titleQuery))
+                {
+                    if (!MatchesTitleKeyword(item, def.IncludedTitleKeywords))
+                        continue;
+                    if (seen.Add(item.InternalId))
+                        results.Add(item);
+                }
+            }
+
+            return ApplyPostProcessing(
+                def,
+                results,
+                mdblistApiKeyOverride,
+                applyTitleKeywordFilter: ScheduledCollectionRuntimeFilter.ShouldApplyTitleKeywordAsGlobalPostFilter(def.MatchMode));
         }
 
         private bool RequiresPostProcessing(ScheduledCollectionDefinition def)
@@ -168,9 +184,9 @@ namespace CollectionManager.Plugin.Helpers
                 || def.IsFavorite == "No";
         }
 
-        private IEnumerable<BaseItem> ApplyPostProcessing(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride)
+        private IEnumerable<BaseItem> ApplyPostProcessing(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride, bool applyTitleKeywordFilter = true)
         {
-            var filtered = ApplyPostFilters(def, items, mdblistApiKeyOverride);
+            var filtered = ApplyPostFilters(def, items, mdblistApiKeyOverride, applyTitleKeywordFilter);
             if (ScheduledCollectionSortOptions.IsDateCreatedDescending(def.SortBy))
                 filtered = filtered.OrderByDescending(i => ReadNullableDateTime(i, "DateCreated") ?? DateTime.MinValue);
             else if (ScheduledCollectionSortOptions.IsCommunityRatingDescending(def.SortBy))
@@ -179,14 +195,14 @@ namespace CollectionManager.Plugin.Helpers
             return def.MaxItems > 0 ? filtered.Take(def.MaxItems) : filtered;
         }
 
-        private IEnumerable<BaseItem> ApplyPostFilters(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride)
+        private IEnumerable<BaseItem> ApplyPostFilters(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride, bool applyTitleKeywordFilter)
         {
             var imdbIds = ResolveExternalImdbIds(def, mdblistApiKeyOverride);
             foreach (var item in items)
             {
                 if (!ScheduledCollectionRuntimeFilter.MatchesMaxRuntimeMinutes(ReadNullableLong(item, "RunTimeTicks"), def.MaxRuntimeMinutes))
                     continue;
-                if (HasTitleKeywordFilter(def) && !MatchesTitleKeyword(item, def.IncludedTitleKeywords))
+                if (applyTitleKeywordFilter && HasTitleKeywordFilter(def) && !MatchesTitleKeyword(item, def.IncludedTitleKeywords))
                     continue;
                 if (imdbIds != null && !MatchesImdbId(item, imdbIds))
                     continue;
@@ -196,10 +212,7 @@ namespace CollectionManager.Plugin.Helpers
 
         private static bool MatchesTitleKeyword(BaseItem item, string[]? keywords)
         {
-            var name = item.Name ?? string.Empty;
-            return (keywords ?? Array.Empty<string>())
-                .Where(k => !string.IsNullOrWhiteSpace(k))
-                .Any(k => name.IndexOf(k.Trim(), StringComparison.OrdinalIgnoreCase) >= 0);
+            return ScheduledCollectionRuntimeFilter.MatchesTitleKeyword(item.Name ?? string.Empty, keywords);
         }
 
         private HashSet<string>? ResolveExternalImdbIds(ScheduledCollectionDefinition def, string? mdblistApiKeyOverride)
@@ -255,7 +268,7 @@ namespace CollectionManager.Plugin.Helpers
                     foreach (var id in ScheduledCollectionExternalIds.ExtractImdbIdsFromMdblistJson(json))
                         ids.Add(id);
 
-                    cursor = ExtractNextCursor(json);
+                    cursor = ScheduledCollectionExternalIds.ExtractMdblistNextCursor(json);
                     if (string.IsNullOrWhiteSpace(cursor)) break;
                 }
 
@@ -271,21 +284,6 @@ namespace CollectionManager.Plugin.Helpers
                 _logger.Warn($"[CollectionManager/ScheduledCollections] Failed to fetch MDBList items from '{itemsPath}': {ex.Message}");
                 return Array.Empty<string>();
             }
-        }
-
-        private static string ExtractNextCursor(string json)
-        {
-            if (string.IsNullOrWhiteSpace(json)) return string.Empty;
-            var marker = "\"next_cursor\"";
-            var idx = json.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
-            if (idx < 0) return string.Empty;
-            var colon = json.IndexOf(':', idx + marker.Length);
-            if (colon < 0) return string.Empty;
-            var firstQuote = json.IndexOf('\"', colon + 1);
-            if (firstQuote < 0) return string.Empty;
-            var secondQuote = json.IndexOf('\"', firstQuote + 1);
-            if (secondQuote <= firstQuote) return string.Empty;
-            return json.Substring(firstQuote + 1, secondQuote - firstQuote - 1);
         }
 
         private static bool MatchesImdbId(BaseItem item, HashSet<string> imdbIds)
@@ -335,12 +333,6 @@ namespace CollectionManager.Plugin.Helpers
                     q.Years = years;
                     yield return q;
                 }
-            }
-
-            if (HasTitleKeywordFilter(def))
-            {
-                var q = BuildQuery(def, includeFilters: false, includeLimit: false);
-                yield return q;
             }
 
             if (def.PlayState == "Played" || def.PlayState == "Unplayed")

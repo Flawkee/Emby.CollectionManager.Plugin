@@ -35,6 +35,22 @@ public sealed class ScheduledCollectionExternalIdsTests
     }
 
     [Fact]
+    public void ExtractMdblistNextCursor_ReturnsEmptyForNullCursorInsteadOfNextQuotedField()
+    {
+        const string json = "{\"items\":[{\"imdb_id\":\"tt0111161\"}],\"next_cursor\":null,\"next\":\"not-a-cursor\"}";
+
+        Assert.Equal(string.Empty, ScheduledCollectionExternalIds.ExtractMdblistNextCursor(json));
+    }
+
+    [Fact]
+    public void ExtractMdblistNextCursor_ReturnsStringCursor()
+    {
+        const string json = "{\"items\":[],\"next_cursor\":\"abc123\"}";
+
+        Assert.Equal("abc123", ScheduledCollectionExternalIds.ExtractMdblistNextCursor(json));
+    }
+
+    [Fact]
     public void BuildSimpleDefinition_UsesDirectImdbIdsWhenPasteContainsTitleIds()
     {
         var def = ScheduledCollectionExternalIds.BuildSimpleDefinition("", "https://www.imdb.com/title/tt0111161/ tt0068646");

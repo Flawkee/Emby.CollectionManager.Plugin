@@ -7,7 +7,7 @@
     <RootNamespace>CollectionManager.Plugin</RootNamespace>
     <Nullable>enable</Nullable>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
-    <Version>1.0.0.24</Version>
+    <Version>1.0.0.25</Version>
     <Authors>Collection Manager</Authors>
     <GeneratedAssemblyInfoFile>assemblyinfo.cs</GeneratedAssemblyInfoFile>
   </PropertyGroup>
