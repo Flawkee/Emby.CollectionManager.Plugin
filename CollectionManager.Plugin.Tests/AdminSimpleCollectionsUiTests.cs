@@ -58,6 +58,25 @@ public sealed class AdminSimpleCollectionsUiTests
         Assert.Contains("btn.disabled = false", script, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void AdminPageStylesInheritHostThemeColors()
+    {
+        var html = ReadRepoFile("Configuration/adminconfigpage.html");
+        var styleStart = html.IndexOf("<style>", StringComparison.Ordinal);
+        var styleEnd = html.IndexOf("</style>", StringComparison.Ordinal);
+
+        Assert.True(styleStart >= 0 && styleEnd > styleStart, "Expected scoped admin page styles.");
+
+        var styles = html.Substring(styleStart, styleEnd - styleStart);
+
+        Assert.Contains("color: inherit", styles, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("color: currentColor", styles, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("rgba(127, 127, 127", styles, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("color: #", styles, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("background: #", styles, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("rgba(255, 255, 255", styles, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static int CountOccurrences(string text, string value)
     {
         var count = 0;
