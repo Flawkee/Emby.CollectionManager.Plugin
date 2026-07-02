@@ -882,8 +882,21 @@ define([
         if (divFeaturedExamples) {
             divFeaturedExamples.addEventListener('click', function (ev) {
                 var btn = ev.target.closest ? ev.target.closest('.cmFeaturedPreset') : null;
-                if (!btn) return;
-                createDefinitionNow(presetDefinition(btn.getAttribute('data-preset') || 'custom'), divFeaturedStatus);
+                if (!btn || btn.disabled) return;
+                var originalHtml = btn.innerHTML;
+                btn.disabled = true;
+                btn.classList.add('is-disabled');
+                btn.innerHTML = '<span class="cmPresetTitle">Creating…</span><span class="cmPresetHint">Saving and checking matches</span>';
+                Promise.resolve(createDefinitionNow(presetDefinition(btn.getAttribute('data-preset') || 'custom'), divFeaturedStatus)).then(function () {
+                    btn.disabled = false;
+                    btn.classList.remove('is-disabled');
+                    btn.innerHTML = originalHtml;
+                }, function () {
+                    btn.disabled = false;
+                    btn.classList.remove('is-disabled');
+                    btn.innerHTML = originalHtml;
+                    setStatus(divFeaturedStatus, 'Could not create this collection. Try another collection or check the library metadata.', false);
+                });
             });
         }
 

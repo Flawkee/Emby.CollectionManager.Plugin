@@ -64,6 +64,34 @@
             grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
         }
 
+        .cmAdminPage .cmSimpleCollectionsBox {
+            background: rgba(70, 130, 220, .10);
+            border: 1px solid #4f6f9f;
+            border-radius: 10px;
+            padding: 1em;
+        }
+
+        .cmAdminPage .cmPresetRecommended {
+            margin-bottom: .75em;
+        }
+
+        .cmAdminPage .cmMorePresets {
+            border-top: 1px solid rgba(255, 255, 255, .18);
+            margin-top: .85em;
+            padding-top: .85em;
+        }
+
+        .cmAdminPage .cmMorePresets summary {
+            color: #f2f2f2;
+            cursor: pointer;
+            font-weight: 700;
+        }
+
+        .cmAdminPage .cmMorePresets summary:hover,
+        .cmAdminPage .cmMorePresets summary:focus-visible {
+            color: #ffffff;
+        }
+
         .cmAdminPage .cmPresetButton {
             align-items: flex-start;
             border-radius: 10px !important;
@@ -248,68 +276,73 @@
 
                     <h2 style="margin-top:2em;">Simple Collections</h2>
                     <div class="fieldDescription" style="margin-bottom:1em;">
-                        Pick a collection. Collection Manager will save it, check it, and create it automatically using your Emby library metadata.
+                        Pick one. One click saves, previews, and creates the collection if matching items are found.
                     </div>
-                    <div class="inputContainer" style="border:1px solid #4f6f9f;border-radius:10px;padding:1em;background:rgba(70,130,220,.10);">
-                        <h3 style="margin-top:0;">One-click collections</h3>
+                    <div class="inputContainer cmSimpleCollectionsBox">
+                        <h3 style="margin-top:0;">Recommended one-click collections</h3>
                         <div id="divFeaturedScheduledExamples">
-                            <div class="cmPresetSection">
-                                <h4 class="cmPresetSectionTitle">Popular</h4>
-                                <div class="cmPresetGrid">
-                                    <button type="button" id="btnCreateTop100Movies" class="cmButton cmButtonPrimary cmPresetButton cmFeaturedPreset" data-preset="top-100-movies"><span class="cmPresetTitle">Top Rated Movies</span><span class="cmPresetHint">Uses Emby ratings</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="top-rated-tv"><span class="cmPresetTitle">Top Rated TV</span><span class="cmPresetHint">Uses Emby ratings</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="favorites"><span class="cmPresetTitle">Favorites</span><span class="cmPresetHint">Items marked favorite</span></button>
-                                </div>
+                            <div id="divRecommendedScheduledExamples" class="cmPresetGrid cmPresetRecommended">
+                                <button type="button" id="btnCreateTop100Movies" class="cmButton cmButtonPrimary cmPresetButton cmFeaturedPreset" data-preset="top-100-movies"><span class="cmPresetTitle">Top Rated Movies</span><span class="cmPresetHint">Best rated movies in Emby</span></button>
+                                <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="recent-movies"><span class="cmPresetTitle">Recently Added Movies</span><span class="cmPresetHint">Newest movies in your library</span></button>
+                                <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="new-releases"><span class="cmPresetTitle">New Releases</span><span class="cmPresetHint">This year and last year</span></button>
+                                <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="unwatched"><span class="cmPresetTitle">Unwatched Movies</span><span class="cmPresetHint">Movies not played yet</span></button>
+                                <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="family-movie-night"><span class="cmPresetTitle">Family Movie Night</span><span class="cmPresetHint">Family-safe easy pick</span></button>
+                                <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="holiday"><span class="cmPresetTitle">Holiday Movies</span><span class="cmPresetHint">Appears during the season</span></button>
                             </div>
-                            <div class="cmPresetSection">
-                                <h4 class="cmPresetSectionTitle">Movies</h4>
-                                <div class="cmPresetGrid">
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="recent-movies"><span class="cmPresetTitle">Recently Added Movies</span><span class="cmPresetHint">Newest movies in your library</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="new-releases"><span class="cmPresetTitle">New Releases</span><span class="cmPresetHint">This year and last year</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="new-movies-this-year"><span class="cmPresetTitle">New Movies This Year</span><span class="cmPresetHint">Only this year's movies</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="new-movies-last-year"><span class="cmPresetTitle">New Movies Last Year</span><span class="cmPresetHint">Only last year's movies</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="unwatched"><span class="cmPresetTitle">Unwatched Movies</span><span class="cmPresetHint">Movies not played yet</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="action-movies"><span class="cmPresetTitle">Action Movies</span><span class="cmPresetHint">Genre: Action</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="comedy-movies"><span class="cmPresetTitle">Comedy Movies</span><span class="cmPresetHint">Genre: Comedy</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="horror-movies"><span class="cmPresetTitle">Horror Movies</span><span class="cmPresetHint">Genre: Horror</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="scifi-movies"><span class="cmPresetTitle">Sci-Fi Movies</span><span class="cmPresetHint">Genre: Science Fiction</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="animated-movies"><span class="cmPresetTitle">Animated Movies</span><span class="cmPresetHint">Genre: Animation</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="documentaries"><span class="cmPresetTitle">Documentaries</span><span class="cmPresetHint">Genre: Documentary</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="drama-movies"><span class="cmPresetTitle">Drama Movies</span><span class="cmPresetHint">Genre: Drama</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="short-movies"><span class="cmPresetTitle">Short Movies</span><span class="cmPresetHint">Under 90 minutes</span></button>
+                            <details class="cmMorePresets">
+                                <summary>Show more one-click collections</summary>
+                                <div class="cmPresetSection">
+                                    <h4 class="cmPresetSectionTitle">Popular</h4>
+                                    <div class="cmPresetGrid">
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="top-rated-tv"><span class="cmPresetTitle">Top Rated TV</span><span class="cmPresetHint">Uses Emby ratings</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="favorites"><span class="cmPresetTitle">Favorites</span><span class="cmPresetHint">Items marked favorite</span></button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="cmPresetSection">
-                                <h4 class="cmPresetSectionTitle">TV</h4>
-                                <div class="cmPresetGrid">
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="recent-tv"><span class="cmPresetTitle">Recently Added TV</span><span class="cmPresetHint">Newest shows in your library</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="unwatched-tv"><span class="cmPresetTitle">Unwatched TV Shows</span><span class="cmPresetHint">Shows with unplayed episodes</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="comedy-tv"><span class="cmPresetTitle">Comedy TV</span><span class="cmPresetHint">Genre: Comedy</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="animated-tv"><span class="cmPresetTitle">Animated TV</span><span class="cmPresetHint">Genre: Animation</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="kids-tv"><span class="cmPresetTitle">Kids TV</span><span class="cmPresetHint">Family-safe ratings</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="documentary-series"><span class="cmPresetTitle">Documentary Series</span><span class="cmPresetHint">Genre: Documentary</span></button>
+                                <div class="cmPresetSection">
+                                    <h4 class="cmPresetSectionTitle">Movies</h4>
+                                    <div class="cmPresetGrid">
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="new-movies-this-year"><span class="cmPresetTitle">New Movies This Year</span><span class="cmPresetHint">Only this year's movies</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="new-movies-last-year"><span class="cmPresetTitle">New Movies Last Year</span><span class="cmPresetHint">Only last year's movies</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="action-movies"><span class="cmPresetTitle">Action Movies</span><span class="cmPresetHint">Genre: Action</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="comedy-movies"><span class="cmPresetTitle">Comedy Movies</span><span class="cmPresetHint">Genre: Comedy</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="horror-movies"><span class="cmPresetTitle">Horror Movies</span><span class="cmPresetHint">Genre: Horror</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="scifi-movies"><span class="cmPresetTitle">Sci-Fi Movies</span><span class="cmPresetHint">Genre: Science Fiction</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="animated-movies"><span class="cmPresetTitle">Animated Movies</span><span class="cmPresetHint">Genre: Animation</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="documentaries"><span class="cmPresetTitle">Documentaries</span><span class="cmPresetHint">Genre: Documentary</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="drama-movies"><span class="cmPresetTitle">Drama Movies</span><span class="cmPresetHint">Genre: Drama</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="short-movies"><span class="cmPresetTitle">Short Movies</span><span class="cmPresetHint">Under 90 minutes</span></button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="cmPresetSection">
-                                <h4 class="cmPresetSectionTitle">Family</h4>
-                                <div class="cmPresetGrid">
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="kids"><span class="cmPresetTitle">Family / Kids</span><span class="cmPresetHint">Movies and TV with family-safe ratings</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="family-movie-night"><span class="cmPresetTitle">Family Movie Night</span><span class="cmPresetHint">Family, animation, adventure, comedy</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="g-pg-movies"><span class="cmPresetTitle">G &amp; PG Movies</span><span class="cmPresetHint">Family-safe movie ratings</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="unwatched-family"><span class="cmPresetTitle">Unwatched Family Movies</span><span class="cmPresetHint">G/PG movies not played yet</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="animated-family-movies"><span class="cmPresetTitle">Animated Family Movies</span><span class="cmPresetHint">Animated movies for family viewing</span></button>
+                                <div class="cmPresetSection">
+                                    <h4 class="cmPresetSectionTitle">TV</h4>
+                                    <div class="cmPresetGrid">
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="recent-tv"><span class="cmPresetTitle">Recently Added TV</span><span class="cmPresetHint">Newest shows in your library</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="unwatched-tv"><span class="cmPresetTitle">Unwatched TV Shows</span><span class="cmPresetHint">Shows with unplayed episodes</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="comedy-tv"><span class="cmPresetTitle">Comedy TV</span><span class="cmPresetHint">Genre: Comedy</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="animated-tv"><span class="cmPresetTitle">Animated TV</span><span class="cmPresetHint">Genre: Animation</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="kids-tv"><span class="cmPresetTitle">Kids TV</span><span class="cmPresetHint">Family-safe ratings</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="documentary-series"><span class="cmPresetTitle">Documentary Series</span><span class="cmPresetHint">Genre: Documentary</span></button>
+                                    </div>
                                 </div>
-                            </div>
-                            <div class="cmPresetSection">
-                                <h4 class="cmPresetSectionTitle">Seasonal</h4>
-                                <div class="cmPresetGrid">
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="halloween"><span class="cmPresetTitle">Halloween Movies</span><span class="cmPresetHint">Active in October</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="holiday"><span class="cmPresetTitle">Holiday Movies</span><span class="cmPresetHint">Active in December</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="holiday-family"><span class="cmPresetTitle">Family Holiday Movies</span><span class="cmPresetHint">Family-safe holiday picks</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="friday-action"><span class="cmPresetTitle">Friday Action Night</span><span class="cmPresetHint">Active on Fridays</span></button>
-                                    <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="weekend-movie-night"><span class="cmPresetTitle">Weekend Movie Night</span><span class="cmPresetHint">Active Friday and Saturday</span></button>
+                                <div class="cmPresetSection">
+                                    <h4 class="cmPresetSectionTitle">Family</h4>
+                                    <div class="cmPresetGrid">
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="kids"><span class="cmPresetTitle">Family / Kids</span><span class="cmPresetHint">Movies and TV with family-safe ratings</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="g-pg-movies"><span class="cmPresetTitle">G &amp; PG Movies</span><span class="cmPresetHint">Family-safe movie ratings</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="unwatched-family"><span class="cmPresetTitle">Unwatched Family Movies</span><span class="cmPresetHint">G/PG movies not played yet</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="animated-family-movies"><span class="cmPresetTitle">Animated Family Movies</span><span class="cmPresetHint">Animated movies for family viewing</span></button>
+                                    </div>
                                 </div>
-                            </div>
+                                <div class="cmPresetSection">
+                                    <h4 class="cmPresetSectionTitle">Seasonal</h4>
+                                    <div class="cmPresetGrid">
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="halloween"><span class="cmPresetTitle">Halloween Movies</span><span class="cmPresetHint">Active in October</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="holiday-family"><span class="cmPresetTitle">Family Holiday Movies</span><span class="cmPresetHint">Family-safe holiday picks</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="friday-action"><span class="cmPresetTitle">Friday Action Night</span><span class="cmPresetHint">Active on Fridays</span></button>
+                                        <button type="button" class="cmButton cmPresetButton cmFeaturedPreset" data-preset="weekend-movie-night"><span class="cmPresetTitle">Weekend Movie Night</span><span class="cmPresetHint">Active Friday and Saturday</span></button>
+                                    </div>
+                                </div>
+                            </details>
                         </div>
                         <div id="divFeaturedScheduledStatus" class="fieldDescription" style="margin-top:.75em;"></div>
                     </div>
