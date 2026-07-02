@@ -19,6 +19,11 @@ namespace CollectionManager.Plugin.Helpers
             return !string.Equals(matchMode, "Any", StringComparison.OrdinalIgnoreCase);
         }
 
+        public static bool ShouldApplyExternalIdsAsGlobalPostFilter(string matchMode)
+        {
+            return !string.Equals(matchMode, "Any", StringComparison.OrdinalIgnoreCase);
+        }
+
         public static bool MatchesTitleKeyword(string title, string[]? keywords)
         {
             var name = title ?? string.Empty;

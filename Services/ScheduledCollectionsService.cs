@@ -203,7 +203,7 @@ namespace CollectionManager.Plugin.Services
         {
             var apiKey = (request.ApiKey ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(apiKey))
-                apiKey = Plugin.Instance?.Options?.MdblistApiKey ?? string.Empty;
+                apiKey = (Plugin.Instance?.Options?.MdblistApiKey ?? string.Empty).Trim();
 
             var source = string.IsNullOrWhiteSpace(request.ListPath) ? "official:movies/moviemeter" : request.ListPath;
             var path = ScheduledCollectionExternalIds.BuildMdblistItemsPath(source);
@@ -231,8 +231,11 @@ namespace CollectionManager.Plugin.Services
 
             try
             {
-                var mediaType = path.IndexOf("/shows/", StringComparison.OrdinalIgnoreCase) >= 0 ? "show" : "movie";
-                var query = "?limit=25&apikey=" + Uri.EscapeDataString(apiKey) + "&mediatype=" + Uri.EscapeDataString(mediaType);
+                var mediaType = path.IndexOf("/shows/", StringComparison.OrdinalIgnoreCase) >= 0 ? "show"
+                    : path.IndexOf("/movies/", StringComparison.OrdinalIgnoreCase) >= 0 ? "movie"
+                    : string.Empty;
+                var query = "?limit=25&apikey=" + Uri.EscapeDataString(apiKey);
+                if (!string.IsNullOrWhiteSpace(mediaType)) query += "&mediatype=" + Uri.EscapeDataString(mediaType);
                 var json = await MdblistTestClient.GetStringAsync(path + query).ConfigureAwait(false);
                 var ids = ScheduledCollectionExternalIds.ExtractImdbIdsFromMdblistJson(json);
                 if (ids.Length == 0)

@@ -76,6 +76,13 @@ namespace CollectionManager.Plugin.Helpers
             if (Uri.TryCreate(value, UriKind.Absolute, out var uri)
                 && (string.Equals(uri.Scheme, "http", StringComparison.OrdinalIgnoreCase) || string.Equals(uri.Scheme, "https", StringComparison.OrdinalIgnoreCase)))
             {
+                if (uri.Host.EndsWith("imdb.com", StringComparison.OrdinalIgnoreCase))
+                {
+                    var imdbParts = uri.AbsolutePath.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
+                    if (imdbParts.Length >= 2 && string.Equals(imdbParts[0], "list", StringComparison.OrdinalIgnoreCase))
+                        return "/external/lists/" + EscapePathSegment(imdbParts[1]) + "/items";
+                }
+
                 value = uri.AbsolutePath.Trim('/');
                 if (value.StartsWith("lists/", StringComparison.OrdinalIgnoreCase))
                     value = value.Substring("lists/".Length);

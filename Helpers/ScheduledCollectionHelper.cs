@@ -8,6 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Cryptography;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -55,7 +57,7 @@ namespace CollectionManager.Plugin.Helpers
             {
                 if (cancellationToken.IsCancellationRequested) return;
                 if (def == null) continue;
-                if (ScheduledCollectionSimpleOneClickPresets.IsKnownPresetName(def.Name ?? string.Empty))
+                if (ScheduledCollectionSimpleOneClickPresets.ShouldSkipScheduledTask(def))
                 {
                     DebugLog($"[CollectionManager/ScheduledCollections] Skipping one-click Simple Collection preset '{def.Name}' during scheduled task run");
                     continue;
@@ -150,11 +152,25 @@ namespace CollectionManager.Plugin.Helpers
                 }
             }
 
+            var imdbIds = ResolveExternalImdbIds(def, mdblistApiKeyOverride);
+            if (imdbIds != null)
+            {
+                var externalQuery = BuildQuery(def, includeFilters: false, includeLimit: false);
+                foreach (var item in _libraryManager.GetItemList(externalQuery))
+                {
+                    if (!MatchesImdbId(item, imdbIds))
+                        continue;
+                    if (seen.Add(item.InternalId))
+                        results.Add(item);
+                }
+            }
+
             return ApplyPostProcessing(
                 def,
                 results,
                 mdblistApiKeyOverride,
-                applyTitleKeywordFilter: ScheduledCollectionRuntimeFilter.ShouldApplyTitleKeywordAsGlobalPostFilter(def.MatchMode));
+                applyTitleKeywordFilter: ScheduledCollectionRuntimeFilter.ShouldApplyTitleKeywordAsGlobalPostFilter(def.MatchMode),
+                applyExternalImdbFilter: ScheduledCollectionRuntimeFilter.ShouldApplyExternalIdsAsGlobalPostFilter(def.MatchMode));
         }
 
         private bool RequiresPostProcessing(ScheduledCollectionDefinition def)
@@ -184,9 +200,9 @@ namespace CollectionManager.Plugin.Helpers
                 || def.IsFavorite == "No";
         }
 
-        private IEnumerable<BaseItem> ApplyPostProcessing(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride, bool applyTitleKeywordFilter = true)
+        private IEnumerable<BaseItem> ApplyPostProcessing(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride, bool applyTitleKeywordFilter = true, bool applyExternalImdbFilter = true)
         {
-            var filtered = ApplyPostFilters(def, items, mdblistApiKeyOverride, applyTitleKeywordFilter);
+            var filtered = ApplyPostFilters(def, items, mdblistApiKeyOverride, applyTitleKeywordFilter, applyExternalImdbFilter);
             if (ScheduledCollectionSortOptions.IsDateCreatedDescending(def.SortBy))
                 filtered = filtered.OrderByDescending(i => ReadNullableDateTime(i, "DateCreated") ?? DateTime.MinValue);
             else if (ScheduledCollectionSortOptions.IsCommunityRatingDescending(def.SortBy))
@@ -195,16 +211,16 @@ namespace CollectionManager.Plugin.Helpers
             return def.MaxItems > 0 ? filtered.Take(def.MaxItems) : filtered;
         }
 
-        private IEnumerable<BaseItem> ApplyPostFilters(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride, bool applyTitleKeywordFilter)
+        private IEnumerable<BaseItem> ApplyPostFilters(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride, bool applyTitleKeywordFilter, bool applyExternalImdbFilter)
         {
-            var imdbIds = ResolveExternalImdbIds(def, mdblistApiKeyOverride);
+            var imdbIds = applyExternalImdbFilter ? ResolveExternalImdbIds(def, mdblistApiKeyOverride) : null;
             foreach (var item in items)
             {
                 if (!ScheduledCollectionRuntimeFilter.MatchesMaxRuntimeMinutes(ReadNullableLong(item, "RunTimeTicks"), def.MaxRuntimeMinutes))
                     continue;
                 if (applyTitleKeywordFilter && HasTitleKeywordFilter(def) && !MatchesTitleKeyword(item, def.IncludedTitleKeywords))
                     continue;
-                if (imdbIds != null && !MatchesImdbId(item, imdbIds))
+                if (applyExternalImdbFilter && imdbIds != null && !MatchesImdbId(item, imdbIds))
                     continue;
                 yield return item;
             }
@@ -237,7 +253,7 @@ namespace CollectionManager.Plugin.Helpers
         {
             var apiKey = !string.IsNullOrWhiteSpace(mdblistApiKeyOverride)
                 ? mdblistApiKeyOverride!.Trim()
-                : (Plugin.Instance?.Options?.MdblistApiKey ?? string.Empty);
+                : (Plugin.Instance?.Options?.MdblistApiKey ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(apiKey))
             {
                 _logger.Warn("[CollectionManager/ScheduledCollections] MDBList source configured but MDBList API key is missing");
@@ -247,7 +263,7 @@ namespace CollectionManager.Plugin.Helpers
             var mediaType = string.Equals(contentType, "Movies", StringComparison.OrdinalIgnoreCase) ? "movie"
                 : string.Equals(contentType, "TvShows", StringComparison.OrdinalIgnoreCase) ? "show"
                 : string.Empty;
-            var cacheKey = itemsPath + "|" + mediaType + "|" + apiKey.GetHashCode();
+            var cacheKey = BuildExternalIdCacheKey(itemsPath, mediaType, apiKey);
             lock (_externalIdCache)
             {
                 if (_externalIdCache.TryGetValue(cacheKey, out var cached) && cached.ExpiresUtc > DateTime.UtcNow)
@@ -283,6 +299,15 @@ namespace CollectionManager.Plugin.Helpers
             {
                 _logger.Warn($"[CollectionManager/ScheduledCollections] Failed to fetch MDBList items from '{itemsPath}': {ex.Message}");
                 return Array.Empty<string>();
+            }
+        }
+
+        public static string BuildExternalIdCacheKey(string itemsPath, string mediaType, string apiKey)
+        {
+            using (var sha = SHA256.Create())
+            {
+                var digest = Convert.ToBase64String(sha.ComputeHash(Encoding.UTF8.GetBytes(apiKey ?? string.Empty)));
+                return (itemsPath ?? string.Empty) + "|" + (mediaType ?? string.Empty) + "|" + digest;
             }
         }
 

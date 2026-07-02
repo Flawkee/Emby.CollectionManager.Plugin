@@ -8,6 +8,8 @@ namespace CollectionManager.Plugin.Helpers
         private static readonly string[] OneClickPresetNames = new[]
         {
             "Top Rated Movies",
+            "Top 100 Movies",
+            "IMDb MovieMeter Top Movies",
             "Top Rated TV",
             "Popular Movies",
             "Streaming Chart Movies",
@@ -76,6 +78,29 @@ namespace CollectionManager.Plugin.Helpers
         {
             return Array.Exists(OneClickPresetNames,
                 presetName => string.Equals(name, presetName, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public static bool ShouldSkipScheduledTask(ScheduledCollectionDefinition? def)
+        {
+            if (def == null) return false;
+
+            var name = (def.Name ?? string.Empty).Trim();
+            if (!IsKnownPresetName(name)) return false;
+
+            if (string.Equals(name, "Top 100 Movies", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(name, "IMDb MovieMeter Top Movies", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            var hasSchedule = !string.IsNullOrWhiteSpace(def.ActiveStart)
+                || !string.IsNullOrWhiteSpace(def.ActiveEnd)
+                || def.ActiveDaysOfWeek?.Length > 0;
+            if (hasSchedule) return false;
+
+            if (def.SourceLibraryIds?.Length > 0) return false;
+
+            return def.RemoveWhenInactive == false;
         }
     }
 }

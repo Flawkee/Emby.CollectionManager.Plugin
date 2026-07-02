@@ -21,6 +21,7 @@ public sealed class ScheduledCollectionExternalIdsTests
     [InlineData("abdiel/halloween", "/lists/abdiel/halloween/items")]
     [InlineData("https://mdblist.com/lists/abdiel/halloween", "/lists/abdiel/halloween/items")]
     [InlineData("https://mdblist.com/lists/12345", "/lists/12345/items")]
+    [InlineData("https://www.imdb.com/list/ls123456789/", "/external/lists/ls123456789/items")]
     public void BuildMdblistItemsPath_NormalizesCommonInputs(string input, string expected)
     {
         Assert.Equal(expected, ScheduledCollectionExternalIds.BuildMdblistItemsPath(input));

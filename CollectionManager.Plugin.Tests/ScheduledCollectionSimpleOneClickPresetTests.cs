@@ -69,6 +69,8 @@ public sealed class ScheduledCollectionSimpleOneClickPresetTests
 
     [Theory]
     [InlineData("Top Rated Movies")]
+    [InlineData("Top 100 Movies")]
+    [InlineData("IMDb MovieMeter Top Movies")]
     [InlineData("Recently Added Movies")]
     [InlineData("Unwatched Movies")]
     [InlineData("Family Movie Night")]
@@ -87,5 +89,38 @@ public sealed class ScheduledCollectionSimpleOneClickPresetTests
     public void IsKnownPresetName_ReturnsFalseForManualCustomCollections()
     {
         Assert.False(ScheduledCollectionSimpleOneClickPresets.IsKnownPresetName("My Manual Collection"));
+    }
+
+    [Fact]
+    public void ShouldSkipScheduledTask_SkipsLegacyOneClickAliasesAfterUpgrade()
+    {
+        Assert.True(ScheduledCollectionSimpleOneClickPresets.ShouldSkipScheduledTask(new ScheduledCollectionDefinition
+        {
+            Enabled = true,
+            Name = "Top 100 Movies",
+            MdblistListPath = "official:movies/moviemeter",
+            RemoveWhenInactive = true
+        }));
+    }
+
+    [Fact]
+    public void ShouldSkipScheduledTask_DoesNotSkipCustomRecurringCollectionJustBecauseNameMatchesPreset()
+    {
+        Assert.False(ScheduledCollectionSimpleOneClickPresets.ShouldSkipScheduledTask(new ScheduledCollectionDefinition
+        {
+            Enabled = true,
+            Name = "Holiday Movies",
+            ActiveStart = "12-01",
+            ActiveEnd = "12-31",
+            RemoveWhenInactive = false
+        }));
+
+        Assert.False(ScheduledCollectionSimpleOneClickPresets.ShouldSkipScheduledTask(new ScheduledCollectionDefinition
+        {
+            Enabled = true,
+            Name = "Holiday Movies",
+            SourceLibraryIds = new[] { "movies-lib" },
+            RemoveWhenInactive = false
+        }));
     }
 }

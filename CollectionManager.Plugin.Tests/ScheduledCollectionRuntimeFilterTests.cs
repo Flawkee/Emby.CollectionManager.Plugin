@@ -31,6 +31,13 @@ public sealed class ScheduledCollectionRuntimeFilterTests
     }
 
     [Fact]
+    public void ShouldApplyExternalIdsAsGlobalPostFilter_DisablesGlobalImdbFilterForAnyMode()
+    {
+        Assert.False(ScheduledCollectionRuntimeFilter.ShouldApplyExternalIdsAsGlobalPostFilter("Any"));
+        Assert.True(ScheduledCollectionRuntimeFilter.ShouldApplyExternalIdsAsGlobalPostFilter("All"));
+    }
+
+    [Fact]
     public void MatchesTitleKeyword_UsesCaseInsensitiveContainsAndIgnoresBlankKeywords()
     {
         Assert.True(ScheduledCollectionRuntimeFilter.MatchesTitleKeyword("A Nightmare on Elm Street", new[] { "", "nightmare" }));
