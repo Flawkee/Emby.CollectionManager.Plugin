@@ -398,17 +398,17 @@ define([
                 case 'top-100-tv':
                     return { Enabled: true, Name: 'Top 100 TV Shows', ContentType: 'TvShows', MdblistListPath: 'official:shows/moviemeter', MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'halloween':
-                    return { Enabled: true, Name: 'Halloween Movies', ContentType: 'Movies', IncludedGenres: ['Horror'], IncludedTitleKeywords: ['Halloween', 'Scream', 'Nightmare'], ActiveStart: '10-01', ActiveEnd: '10-31', MaxItems: 100, RemoveWhenInactive: true, MatchMode: 'Any' };
+                    return { Enabled: true, Name: 'Halloween Movies', ContentType: 'Movies', IncludedGenres: ['Horror'], IncludedTitleKeywords: ['Halloween', 'Scream', 'Nightmare'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'Any' };
                 case 'kids-halloween':
-                    return { Enabled: true, Name: 'Kids Halloween', ContentType: 'Movies', IncludedGenres: ['Horror'], IncludedOfficialRatings: ['G', 'PG', 'TV-Y7'], ActiveStart: '10-01', ActiveEnd: '10-31', RemoveWhenInactive: true, MatchMode: 'All' };
+                    return { Enabled: true, Name: 'Kids Halloween', ContentType: 'Movies', IncludedGenres: ['Horror'], IncludedOfficialRatings: ['G', 'PG', 'TV-Y7'], RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'holiday':
-                    return { Enabled: true, Name: 'Holiday Movies', ContentType: 'Movies', IncludedTitleKeywords: ['Christmas', 'Holiday', 'Santa', 'Noel'], ActiveStart: '12-01', ActiveEnd: '01-05', MaxItems: 100, RemoveWhenInactive: true, MatchMode: 'All' };
+                    return { Enabled: true, Name: 'Holiday Movies', ContentType: 'Movies', IncludedTitleKeywords: ['Christmas', 'Holiday', 'Santa', 'Noel'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'holiday-family':
-                    return { Enabled: true, Name: 'Family Holiday Movies', ContentType: 'Movies', IncludedTitleKeywords: ['Christmas', 'Holiday', 'Santa', 'Noel'], IncludedOfficialRatings: ['G', 'PG'], ActiveStart: '12-01', ActiveEnd: '01-05', MaxItems: 100, RemoveWhenInactive: true, MatchMode: 'All' };
+                    return { Enabled: true, Name: 'Family Holiday Movies', ContentType: 'Movies', IncludedTitleKeywords: ['Christmas', 'Holiday', 'Santa', 'Noel'], IncludedOfficialRatings: ['G', 'PG'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'friday-action':
-                    return { Enabled: true, Name: 'Friday Action Night', ContentType: 'Movies', IncludedGenres: ['Action'], ActiveDaysOfWeek: ['Friday'], MaxItems: 50, RemoveWhenInactive: true, MatchMode: 'All' };
+                    return { Enabled: true, Name: 'Friday Action Night', ContentType: 'Movies', IncludedGenres: ['Action'], MaxItems: 50, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'weekend-movie-night':
-                    return { Enabled: true, Name: 'Weekend Movie Night', ContentType: 'Movies', IncludedGenres: ['Action', 'Adventure', 'Comedy'], ActiveDaysOfWeek: ['Friday', 'Saturday'], MaxItems: 50, RemoveWhenInactive: true, MatchMode: 'Any' };
+                    return { Enabled: true, Name: 'Weekend Movie Night', ContentType: 'Movies', IncludedGenres: ['Action', 'Adventure', 'Comedy'], MaxItems: 50, RemoveWhenInactive: false, MatchMode: 'Any' };
                 case 'short-movies':
                     return { Enabled: true, Name: 'Short Movies Under 90 Minutes', ContentType: 'Movies', MaxRuntimeMinutes: 90, MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'action-movies':
@@ -438,7 +438,7 @@ define([
                 case 'kids':
                     return { Enabled: true, Name: 'Kids Collection', ContentType: 'Both', IncludedOfficialRatings: ['G', 'PG', 'TV-Y', 'TV-Y7'], RemoveWhenInactive: false, MatchMode: 'Any' };
                 case 'family-movie-night':
-                    return { Enabled: true, Name: 'Family Movie Night', ContentType: 'Movies', IncludedGenres: ['Family', 'Animation', 'Adventure', 'Comedy'], IncludedOfficialRatings: ['G', 'PG'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'Any' };
+                    return { Enabled: true, Name: 'Family Movie Night', ContentType: 'Movies', IncludedGenres: ['Family', 'Animation', 'Adventure', 'Comedy'], IncludedOfficialRatings: ['G', 'PG'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'g-pg-movies':
                     return { Enabled: true, Name: 'G & PG Movies', ContentType: 'Movies', IncludedOfficialRatings: ['G', 'PG'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'Any' };
                 case 'animated-family-movies':

@@ -90,6 +90,32 @@ public sealed class AdminSimpleCollectionsUiTests
         Assert.Contains("flex-direction: column", script, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void SimpleCollections_DoNotShipInactiveSeasonalOneClickPresets()
+    {
+        var script = ReadRepoFile("Configuration/adminconfigpage.js");
+        var html = ReadRepoFile("Configuration/adminconfigpage.html");
+
+        Assert.DoesNotContain("Active in October", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Active on Fridays", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Active Friday and Saturday", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Appears during the season", html, StringComparison.OrdinalIgnoreCase);
+
+        foreach (var preset in new[] { "halloween", "holiday", "holiday-family", "friday-action", "weekend-movie-night" })
+        {
+            var marker = "case '" + preset + "':";
+            var start = script.IndexOf(marker, StringComparison.Ordinal);
+            var next = script.IndexOf("\n                case '", start + marker.Length, StringComparison.Ordinal);
+            Assert.True(start >= 0 && next > start, "Expected preset " + preset + ".");
+            var presetBlock = script.Substring(start, next - start);
+
+            Assert.DoesNotContain("ActiveStart", presetBlock, StringComparison.Ordinal);
+            Assert.DoesNotContain("ActiveEnd", presetBlock, StringComparison.Ordinal);
+            Assert.DoesNotContain("ActiveDaysOfWeek", presetBlock, StringComparison.Ordinal);
+            Assert.Contains("RemoveWhenInactive: false", presetBlock, StringComparison.Ordinal);
+        }
+    }
+
     private static int CountOccurrences(string text, string value)
     {
         var count = 0;
