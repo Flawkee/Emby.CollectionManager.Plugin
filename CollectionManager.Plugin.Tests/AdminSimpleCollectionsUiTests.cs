@@ -77,6 +77,19 @@ public sealed class AdminSimpleCollectionsUiTests
         Assert.DoesNotContain("rgba(255, 255, 255", styles, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void AdminPageInjectsStylesAtRuntimeForEmbyFragmentLoading()
+    {
+        var script = ReadRepoFile("Configuration/adminconfigpage.js");
+
+        Assert.Contains("cmAdminPageRuntimeStyles", script, StringComparison.Ordinal);
+        Assert.Contains("ensureCmAdminStyles();", script, StringComparison.Ordinal);
+        Assert.Contains(".cmAdminPage .cmButton", script, StringComparison.Ordinal);
+        Assert.Contains("rgba(127, 127, 127, .20)", script, StringComparison.Ordinal);
+        Assert.Contains("display: flex", script, StringComparison.Ordinal);
+        Assert.Contains("flex-direction: column", script, StringComparison.Ordinal);
+    }
+
     private static int CountOccurrences(string text, string value)
     {
         var count = 0;
