@@ -1,4 +1,5 @@
 using CollectionManager.Plugin.Configuration;
+using MediaBrowser.Common;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
 using MediaBrowser.Model.Entities;
@@ -21,11 +22,14 @@ namespace CollectionManager.Plugin.Helpers
 
         private readonly ILogger _logger;
         private readonly ILibraryManager _libraryManager;
+        private readonly IApplicationHost? _appHost;
+        private IUserManager? _userManager;
 
-        private ScheduledCollectionHelper(ILogger logger, ILibraryManager libraryManager)
+        private ScheduledCollectionHelper(ILogger logger, ILibraryManager libraryManager, IApplicationHost? appHost)
         {
             _logger = logger;
             _libraryManager = libraryManager;
+            _appHost = appHost;
         }
 
         private bool DebugEnabled => Plugin.Instance?.Options?.EnableDebugLogging == true;
@@ -36,12 +40,12 @@ namespace CollectionManager.Plugin.Helpers
             get { lock (_lock) { return _instance; } }
         }
 
-        public static void Initialize(ILogger logger, ILibraryManager libraryManager)
+        public static void Initialize(ILogger logger, ILibraryManager libraryManager, IApplicationHost? appHost = null)
         {
             lock (_lock)
             {
                 if (_instance == null)
-                    _instance = new ScheduledCollectionHelper(logger, libraryManager);
+                    _instance = new ScheduledCollectionHelper(logger, libraryManager, appHost);
             }
         }
 
@@ -129,12 +133,26 @@ namespace CollectionManager.Plugin.Helpers
             return def.MaxRuntimeMinutes > 0
                 || ScheduledCollectionSortOptions.IsDateCreatedDescending(def.SortBy)
                 || ScheduledCollectionSortOptions.IsCommunityRatingDescending(def.SortBy)
+                || HasTitleKeywordFilter(def)
                 || HasExternalImdbFilter(def);
         }
 
         private bool HasExternalImdbFilter(ScheduledCollectionDefinition def)
         {
             return (def.IncludedImdbIds?.Length > 0) || !string.IsNullOrWhiteSpace(def.MdblistListPath);
+        }
+
+        private static bool HasTitleKeywordFilter(ScheduledCollectionDefinition def)
+        {
+            return def.IncludedTitleKeywords?.Length > 0;
+        }
+
+        private static bool HasUserScopedFilter(ScheduledCollectionDefinition def)
+        {
+            return def.PlayState == "Played"
+                || def.PlayState == "Unplayed"
+                || def.IsFavorite == "Yes"
+                || def.IsFavorite == "No";
         }
 
         private IEnumerable<BaseItem> ApplyPostProcessing(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride)
@@ -155,10 +173,20 @@ namespace CollectionManager.Plugin.Helpers
             {
                 if (!ScheduledCollectionRuntimeFilter.MatchesMaxRuntimeMinutes(ReadNullableLong(item, "RunTimeTicks"), def.MaxRuntimeMinutes))
                     continue;
+                if (HasTitleKeywordFilter(def) && !MatchesTitleKeyword(item, def.IncludedTitleKeywords))
+                    continue;
                 if (imdbIds != null && !MatchesImdbId(item, imdbIds))
                     continue;
                 yield return item;
             }
+        }
+
+        private static bool MatchesTitleKeyword(BaseItem item, string[]? keywords)
+        {
+            var name = item.Name ?? string.Empty;
+            return (keywords ?? Array.Empty<string>())
+                .Where(k => !string.IsNullOrWhiteSpace(k))
+                .Any(k => name.IndexOf(k.Trim(), StringComparison.OrdinalIgnoreCase) >= 0);
         }
 
         private HashSet<string>? ResolveExternalImdbIds(ScheduledCollectionDefinition def, string? mdblistApiKeyOverride)
@@ -296,17 +324,25 @@ namespace CollectionManager.Plugin.Helpers
                 }
             }
 
+            if (HasTitleKeywordFilter(def))
+            {
+                var q = BuildQuery(def, includeFilters: false, includeLimit: false);
+                yield return q;
+            }
+
             if (def.PlayState == "Played" || def.PlayState == "Unplayed")
             {
                 var q = BuildQuery(def, includeFilters: false, includeLimit: false);
-                q.IsPlayed = def.PlayState == "Played";
+                if (q.User != null)
+                    q.IsPlayed = def.PlayState == "Played";
                 yield return q;
             }
 
             if (def.IsFavorite == "Yes" || def.IsFavorite == "No")
             {
                 var q = BuildQuery(def, includeFilters: false, includeLimit: false);
-                q.IsFavorite = def.IsFavorite == "Yes";
+                if (q.User != null)
+                    q.IsFavorite = def.IsFavorite == "Yes";
                 yield return q;
             }
 
@@ -326,6 +362,7 @@ namespace CollectionManager.Plugin.Helpers
                 || (def.IncludedOfficialRatings?.Length > 0)
                 || (def.IncludedTags?.Length > 0)
                 || (def.IncludedYears?.Length > 0)
+                || HasTitleKeywordFilter(def)
                 || def.PlayState == "Played"
                 || def.PlayState == "Unplayed"
                 || def.IsFavorite == "Yes"
@@ -348,6 +385,13 @@ namespace CollectionManager.Plugin.Helpers
                 IncludeItemTypes = itemTypes,
                 Recursive        = true,
             };
+
+            if (HasUserScopedFilter(def))
+            {
+                var referenceUser = GetReferenceUser();
+                if (referenceUser != null)
+                    query.User = referenceUser;
+            }
 
             var sourceLibraryIds = LibraryScanner.Instance?.ResolveSourceLibraryInternalIds(def.SourceLibraryIds) ?? Array.Empty<long>();
             if (sourceLibraryIds.Length > 0)
@@ -373,14 +417,14 @@ namespace CollectionManager.Plugin.Helpers
 
                 switch (def.PlayState)
                 {
-                    case "Played":   query.IsPlayed = true;  break;
-                    case "Unplayed": query.IsPlayed = false; break;
+                    case "Played" when query.User != null:   query.IsPlayed = true;  break;
+                    case "Unplayed" when query.User != null: query.IsPlayed = false; break;
                 }
 
                 switch (def.IsFavorite)
                 {
-                    case "Yes": query.IsFavorite = true;  break;
-                    case "No":  query.IsFavorite = false; break;
+                    case "Yes" when query.User != null: query.IsFavorite = true;  break;
+                    case "No" when query.User != null:  query.IsFavorite = false; break;
                 }
 
                 if (def.SeriesStatus != "Any" && !string.IsNullOrEmpty(def.SeriesStatus)
@@ -394,6 +438,16 @@ namespace CollectionManager.Plugin.Helpers
                 query.Limit = def.MaxItems;
 
             return query;
+        }
+
+        private User? GetReferenceUser()
+        {
+            if (_appHost == null) return null;
+            _userManager ??= _appHost.TryResolve<IUserManager>();
+            if (_userManager == null) return null;
+#pragma warning disable CS0618
+            return _userManager.Users.FirstOrDefault();
+#pragma warning restore CS0618
         }
 
         private static long? ReadNullableLong(object item, string propertyName)

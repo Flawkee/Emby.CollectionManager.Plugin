@@ -251,13 +251,13 @@ define([
                 case 'top-100-tv':
                     return { Enabled: true, Name: 'Top 100 TV Shows', ContentType: 'TvShows', MdblistListPath: 'official:shows/moviemeter', MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'halloween':
-                    return { Enabled: true, Name: 'Halloween Movies', ContentType: 'Movies', IncludedGenres: ['Horror'], ActiveStart: '10-01', ActiveEnd: '10-31', RemoveWhenInactive: true, MatchMode: 'All' };
+                    return { Enabled: true, Name: 'Halloween Movies', ContentType: 'Movies', IncludedGenres: ['Horror'], IncludedTitleKeywords: ['Halloween', 'Scream', 'Nightmare'], ActiveStart: '10-01', ActiveEnd: '10-31', MaxItems: 100, RemoveWhenInactive: true, MatchMode: 'Any' };
                 case 'kids-halloween':
                     return { Enabled: true, Name: 'Kids Halloween', ContentType: 'Movies', IncludedGenres: ['Horror'], IncludedOfficialRatings: ['G', 'PG', 'TV-Y7'], ActiveStart: '10-01', ActiveEnd: '10-31', RemoveWhenInactive: true, MatchMode: 'All' };
                 case 'holiday':
-                    return { Enabled: true, Name: 'Holiday Movies', ContentType: 'Movies', IncludedGenres: ['Christmas', 'Holiday'], ActiveStart: '12-01', ActiveEnd: '01-05', RemoveWhenInactive: true, MatchMode: 'Any' };
+                    return { Enabled: true, Name: 'Holiday Movies', ContentType: 'Movies', IncludedTitleKeywords: ['Christmas', 'Holiday', 'Santa', 'Noel'], ActiveStart: '12-01', ActiveEnd: '01-05', MaxItems: 100, RemoveWhenInactive: true, MatchMode: 'All' };
                 case 'holiday-family':
-                    return { Enabled: true, Name: 'Holiday Family Movies', ContentType: 'Movies', IncludedGenres: ['Christmas', 'Holiday'], IncludedOfficialRatings: ['G', 'PG'], ActiveStart: '12-01', ActiveEnd: '01-05', RemoveWhenInactive: true, MatchMode: 'Any' };
+                    return { Enabled: true, Name: 'Family Holiday Movies', ContentType: 'Movies', IncludedTitleKeywords: ['Christmas', 'Holiday', 'Santa', 'Noel'], IncludedOfficialRatings: ['G', 'PG'], ActiveStart: '12-01', ActiveEnd: '01-05', MaxItems: 100, RemoveWhenInactive: true, MatchMode: 'All' };
                 case 'friday-action':
                     return { Enabled: true, Name: 'Friday Action Night', ContentType: 'Movies', IncludedGenres: ['Action'], ActiveDaysOfWeek: ['Friday'], MaxItems: 50, RemoveWhenInactive: true, MatchMode: 'All' };
                 case 'weekend-movie-night':
@@ -278,10 +278,30 @@ define([
                     return { Enabled: true, Name: 'Documentaries', ContentType: 'Movies', IncludedGenres: ['Documentary'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'drama-movies':
                     return { Enabled: true, Name: 'Drama Movies', ContentType: 'Movies', IncludedGenres: ['Drama'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'comedy-tv':
+                    return { Enabled: true, Name: 'Comedy TV', ContentType: 'TvShows', IncludedGenres: ['Comedy'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'animated-tv':
+                    return { Enabled: true, Name: 'Animated TV', ContentType: 'TvShows', IncludedGenres: ['Animation'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'kids-tv':
+                    return { Enabled: true, Name: 'Kids TV', ContentType: 'TvShows', IncludedOfficialRatings: ['TV-Y', 'TV-Y7', 'G', 'PG'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'Any' };
+                case 'documentary-series':
+                    return { Enabled: true, Name: 'Documentary Series', ContentType: 'TvShows', IncludedGenres: ['Documentary'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
+                case 'unwatched-tv':
+                    return { Enabled: true, Name: 'Unwatched TV Shows', ContentType: 'TvShows', PlayState: 'Unplayed', MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'kids':
                     return { Enabled: true, Name: 'Kids Collection', ContentType: 'Both', IncludedOfficialRatings: ['G', 'PG', 'TV-Y', 'TV-Y7'], RemoveWhenInactive: false, MatchMode: 'Any' };
+                case 'family-movie-night':
+                    return { Enabled: true, Name: 'Family Movie Night', ContentType: 'Movies', IncludedGenres: ['Family', 'Animation', 'Adventure', 'Comedy'], IncludedOfficialRatings: ['G', 'PG'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'Any' };
+                case 'g-pg-movies':
+                    return { Enabled: true, Name: 'G & PG Movies', ContentType: 'Movies', IncludedOfficialRatings: ['G', 'PG'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'Any' };
+                case 'animated-family-movies':
+                    return { Enabled: true, Name: 'Animated Family Movies', ContentType: 'Movies', IncludedGenres: ['Animation'], IncludedOfficialRatings: ['G', 'PG'], MaxItems: 100, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'new-releases':
                     return { Enabled: true, Name: 'New Releases', ContentType: 'Movies', IncludedYears: [String(new Date().getFullYear()), String(new Date().getFullYear() - 1)], MaxItems: 75, RemoveWhenInactive: false, MatchMode: 'Any' };
+                case 'new-movies-this-year':
+                    return { Enabled: true, Name: 'New Movies This Year', ContentType: 'Movies', IncludedYears: [String(new Date().getFullYear())], MaxItems: 75, RemoveWhenInactive: false, MatchMode: 'Any' };
+                case 'new-movies-last-year':
+                    return { Enabled: true, Name: 'New Movies Last Year', ContentType: 'Movies', IncludedYears: [String(new Date().getFullYear() - 1)], MaxItems: 75, RemoveWhenInactive: false, MatchMode: 'Any' };
                 case 'recent-movies':
                     return { Enabled: true, Name: 'Recently Added Movies', ContentType: 'Movies', SortBy: 'DateCreatedDescending', MaxItems: 75, RemoveWhenInactive: false, MatchMode: 'All' };
                 case 'recent-tv':

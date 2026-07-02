@@ -29,6 +29,11 @@ namespace CollectionManager.Plugin.Configuration
         public string MdblistListPath { get; set; } = string.Empty;
 
         /// <summary>
+        /// Optional title keywords. Each value is matched against the Emby item name using a case-insensitive contains check.
+        /// </summary>
+        public string[] IncludedTitleKeywords { get; set; } = System.Array.Empty<string>();
+
+        /// <summary>
         /// Optional post-query sort. Supported: DateCreatedDescending.
         /// </summary>
         public string SortBy { get; set; } = string.Empty;

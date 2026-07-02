@@ -36,7 +36,7 @@ namespace CollectionManager.Plugin
             CollectionHelper.Initialize(logger, libraryManager, applicationHost);
             PlaylistHelper.Initialize(logger, libraryManager, applicationHost);
             DynamicPlaylistHelper.Initialize(logger, libraryManager, applicationHost);
-            ScheduledCollectionHelper.Initialize(logger, libraryManager);
+            ScheduledCollectionHelper.Initialize(logger, libraryManager, applicationHost);
         }
 
         public override sealed string Name => PluginName;
