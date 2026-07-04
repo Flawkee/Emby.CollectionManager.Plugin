@@ -176,8 +176,14 @@ define([
         var txtQuickScheduledSource = view.querySelector('#txtQuickScheduledSource');
         var btnQuickAddScheduledCollection = view.querySelector('#btnQuickAddScheduledCollection');
         var divQuickScheduledHint = view.querySelector('#divQuickScheduledHint');
+        var txtPersonCollectionName = view.querySelector('#txtPersonCollectionName');
+        var selPersonCollectionType = view.querySelector('#selPersonCollectionType');
+        var txtPersonCollectionValue = view.querySelector('#txtPersonCollectionValue');
+        var datalistPersonCollectionValues = view.querySelector('#cmPersonCollectionValues');
+        var btnCreatePersonCollection = view.querySelector('#btnCreatePersonCollection');
+        var divPersonCollectionStatus = view.querySelector('#divPersonCollectionStatus');
         var _libraries = [];
-        var _metadata = { Libraries: [], Genres: [], Studios: [], Tags: [], Years: [], Ratings: [], ImdbProviderIdCount: 0, HasImdbProviderIds: false };
+        var _metadata = { Libraries: [], Genres: [], Studios: [], Tags: [], Years: [], Ratings: [], Actors: [], Directors: [], ImdbProviderIdCount: 0, HasImdbProviderIds: false };
 
         function escAttr(s) {
             return (s == null ? '' : String(s))
@@ -227,6 +233,26 @@ define([
             return 'Detected a list source. If this is an IMDb watchlist/list, import it into MDBList first, add your MDBList API key above, then Preview.';
         }
 
+        function personCollectionDefinition(kind, personName, collectionName) {
+            var name = (personName || '').trim();
+            var isDirector = kind === 'director';
+            return {
+                Enabled: true,
+                Name: (collectionName || '').trim() || (name ? name + (isDirector ? ' Directed Collection' : ' Collection') : 'Person Collection'),
+                ContentType: 'Both',
+                IncludedActors: isDirector || !name ? [] : [name],
+                IncludedDirectors: isDirector && name ? [name] : [],
+                RemoveWhenInactive: false,
+                MatchMode: 'All'
+            };
+        }
+
+        function updatePersonCollectionSuggestions() {
+            if (!datalistPersonCollectionValues) return;
+            var values = selPersonCollectionType && selPersonCollectionType.value === 'director' ? (_metadata.Directors || []) : (_metadata.Actors || []);
+            datalistPersonCollectionValues.innerHTML = optionList(values, txtPersonCollectionValue ? txtPersonCollectionValue.value : '');
+        }
+
         function mdblistPathKey(source) {
             var value = String(source || '').trim().replace(/^https?:\/\/[^/]+\/lists\//i, '').replace(/^lists\//i, '').replace(/^official:/i, 'official/').replace(/\/+$/g, '');
             return value.toLowerCase();
@@ -259,6 +285,8 @@ define([
                 || (def.IncludedImdbIds && def.IncludedImdbIds.length)
                 || (def.IncludedGenres && def.IncludedGenres.length)
                 || (def.IncludedStudios && def.IncludedStudios.length)
+                || (def.IncludedActors && def.IncludedActors.length)
+                || (def.IncludedDirectors && def.IncludedDirectors.length)
                 || (def.IncludedTags && def.IncludedTags.length)
                 || (def.IncludedYears && def.IncludedYears.length)
                 || (def.IncludedOfficialRatings && def.IncludedOfficialRatings.length)
@@ -518,6 +546,8 @@ define([
         function tokenSuggestions(field) {
             if (field === 'Genres') return _metadata.Genres || [];
             if (field === 'Studios') return _metadata.Studios || [];
+            if (field === 'Actors') return _metadata.Actors || [];
+            if (field === 'Directors') return _metadata.Directors || [];
             if (field === 'Tags') return _metadata.Tags || [];
             if (field === 'Years') return _metadata.Years || [];
             if (field === 'Ratings') return _metadata.Ratings || [];
@@ -622,6 +652,8 @@ define([
                 + tokenField('ImdbIds', 'IMDb title IDs / URLs', def.IncludedImdbIds, [], 'tt0111161 or imdb.com/title/tt0111161', index)
                 + tokenField('Genres', 'Genres', def.IncludedGenres, _metadata.Genres, 'Horror', index)
                 + tokenField('Studios', 'Studios / services', def.IncludedStudios, _metadata.Studios, 'Netflix', index)
+                + tokenField('Actors', 'Actors', def.IncludedActors, _metadata.Actors, 'Tom Hanks', index)
+                + tokenField('Directors', 'Directors', def.IncludedDirectors, _metadata.Directors, 'Steven Spielberg', index)
                 + tokenField('Tags', 'Tags', def.IncludedTags, _metadata.Tags, '4K', index)
                 + tokenField('Years', 'Years', def.IncludedYears, _metadata.Years, String(new Date().getFullYear()), index)
                 + tokenField('Ratings', 'Ratings', def.IncludedOfficialRatings, _metadata.Ratings, 'PG', index)
@@ -659,6 +691,8 @@ define([
             if (def.SourceLibraryIds && def.SourceLibraryIds.length) parts.push(def.SourceLibraryIds.length + ' librar' + (def.SourceLibraryIds.length === 1 ? 'y' : 'ies'));
             if (def.IncludedGenres && def.IncludedGenres.length) parts.push('Genre: ' + def.IncludedGenres.slice(0, 2).join(', '));
             if (def.IncludedStudios && def.IncludedStudios.length) parts.push('Studio: ' + def.IncludedStudios.slice(0, 2).join(', '));
+            if (def.IncludedActors && def.IncludedActors.length) parts.push('Actor: ' + def.IncludedActors.slice(0, 2).join(', '));
+            if (def.IncludedDirectors && def.IncludedDirectors.length) parts.push('Director: ' + def.IncludedDirectors.slice(0, 2).join(', '));
             if (def.IncludedTags && def.IncludedTags.length) parts.push('Tag: ' + def.IncludedTags.slice(0, 2).join(', '));
             if (def.IncludedYears && def.IncludedYears.length) parts.push('Year: ' + def.IncludedYears.slice(0, 2).join(', '));
             if (def.IncludedOfficialRatings && def.IncludedOfficialRatings.length) parts.push('Rating: ' + def.IncludedOfficialRatings.slice(0, 2).join(', '));
@@ -717,6 +751,8 @@ define([
                 SourceLibraryIds: selectedLibraries(card),
                 IncludedGenres: tokenValues(card, 'Genres'),
                 IncludedStudios: tokenValues(card, 'Studios'),
+                IncludedActors: tokenValues(card, 'Actors'),
+                IncludedDirectors: tokenValues(card, 'Directors'),
                 IncludedYears: tokenValues(card, 'Years'),
                 IncludedOfficialRatings: tokenValues(card, 'Ratings'),
                 IncludedTags: tokenValues(card, 'Tags'),
@@ -862,9 +898,14 @@ define([
                     return preview;
                 }
                 setStatus(targetStatus, 'Creating ' + def.Name + ' from ' + preview.Count + ' matched item(s)…', true);
-                return apiPost('CollectionManager/ScheduledCollections/Run', def).then(function (runResponse) {
+                var runRequest = JSON.parse(JSON.stringify(def));
+                runRequest.PreviewCount = preview.Count || 0;
+                return apiPost('CollectionManager/ScheduledCollections/Run', runRequest).then(function (runResponse) {
                     var run = typeof runResponse === 'string' ? JSON.parse(runResponse || '{}') : runResponse;
                     var message = run.Message || ('Created ' + def.Name + '.');
+                    if (run && run.Success !== false && preview.Count > 0 && (run.Count || 0) <= 0) {
+                        message = 'Created ' + def.Name + ' with ' + preview.Count + ' item(s).';
+                    }
                     if (!persistDefinition && (!run || run.Success !== false)) {
                         message += ' It will not be recreated automatically if you delete it.';
                     }
@@ -1015,6 +1056,28 @@ define([
             addPreset(selScheduledPreset.value, false);
         });
 
+        if (txtPersonCollectionValue) {
+            txtPersonCollectionValue.addEventListener('input', updatePersonCollectionSuggestions);
+        }
+
+        if (selPersonCollectionType) {
+            selPersonCollectionType.addEventListener('change', updatePersonCollectionSuggestions);
+        }
+
+        if (btnCreatePersonCollection) {
+            btnCreatePersonCollection.addEventListener('click', function () {
+                var person = (txtPersonCollectionValue.value || '').trim();
+                if (!person) {
+                    Dashboard.alert({ title: 'Create person collection', message: 'Enter an actor or director name first.' });
+                    return;
+                }
+                var def = personCollectionDefinition(selPersonCollectionType.value, person, txtPersonCollectionName.value);
+                setStatus(divPersonCollectionStatus, 'Saving and previewing ' + def.Name + '…', true);
+                txtPersonCollectionValue.value = '';
+                createDefinitionNow(def, divPersonCollectionStatus, true);
+            });
+        }
+
         if (txtQuickScheduledSource) {
             txtQuickScheduledSource.addEventListener('input', function () {
                 divQuickScheduledHint.innerHTML = escText(simpleCollectionHint(txtQuickScheduledSource.value));
@@ -1110,6 +1173,7 @@ define([
                 loadLibraries().then(loadBuilderMetadata)
             ]).then(function (results) {
                 applyConfigToForm(results[0]);
+                updatePersonCollectionSuggestions();
                 loading.hide();
             }, function () {
                 loading.hide();

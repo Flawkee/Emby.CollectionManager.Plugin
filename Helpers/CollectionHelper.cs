@@ -27,70 +27,6 @@ namespace CollectionManager.Plugin.Helpers
 
         private ICollectionManager? _collectionManager;
 
-        // Supported canonical streaming services and all metadata aliases that map to them.
-        // Longer/more-specific keys must come before shorter ones (e.g. "HBO Max" before "HBO").
-        private static readonly (string Key, string CollectionName)[] ServiceMap =
-        {
-            // Netflix
-            ("Netflix",               "Netflix"),
-
-            // Amazon Prime Video
-            ("Amazon Prime Video",    "Amazon Prime Video"),
-            ("Amazon Prime",          "Amazon Prime Video"),
-            ("Prime Video",           "Amazon Prime Video"),
-            ("Amazon Studios",        "Amazon Prime Video"),
-            ("Amazon",                "Amazon Prime Video"),
-
-            // Disney+
-            ("Disney Plus",           "Disney+"),
-            ("Disney+",               "Disney+"),
-            ("Disney",                "Disney+"),
-
-            // Hulu
-            ("Hulu",                  "Hulu"),
-
-            // HBO Max — absorbs legacy "HBO" and "Max" labels
-            ("HBO Max",               "HBO Max"),
-            ("HBO",                   "HBO Max"),
-            ("Max",                   "HBO Max"),
-
-            // Apple TV+
-            ("Apple TV Plus",         "Apple TV+"),
-            ("Apple TV+",             "Apple TV+"),
-            ("Apple TV",              "Apple TV+"),
-            ("Apple",                 "Apple TV+"),
-
-            // Paramount+
-            ("Paramount Plus",        "Paramount+"),
-            ("Paramount+",            "Paramount+"),
-            ("Paramount",             "Paramount+"),
-
-            // YouTube TV
-            ("YouTube TV",            "YouTube TV"),
-            ("YouTube Premium",       "YouTube TV"),
-            ("YouTube",               "YouTube TV"),
-
-            // Sling TV
-            ("Sling TV",              "Sling TV"),
-            ("Sling",                 "Sling TV"),
-
-            // Discovery+
-            ("Discovery Plus",        "Discovery+"),
-            ("Discovery+",            "Discovery+"),
-            ("Discovery",             "Discovery+"),
-
-            // ESPN+
-            ("ESPN Plus",             "ESPN+"),
-            ("ESPN+",                 "ESPN+"),
-            ("ESPN",                  "ESPN+"),
-
-            // MGM+
-            ("MGM Plus",              "MGM+"),
-            ("MGM+",                  "MGM+"),
-            ("EPIX",                  "MGM+"),
-            ("MGM",                   "MGM+"),
-        };
-
         // Maps canonical collection name → embedded resource suffix (after "CollectionManager.Plugin.")
         // Resource names confirmed from the built DLL: directory hyphens become underscores, file hyphens preserved.
         private static readonly Dictionary<string, string> LogoResourceMap = new(StringComparer.OrdinalIgnoreCase)
@@ -153,19 +89,7 @@ namespace CollectionManager.Plugin.Helpers
         /// </summary>
         public static string[] GetStreamingServices(string[] studios)
         {
-            var matched = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var studio in studios)
-            {
-                foreach (var (key, name) in ServiceMap)
-                {
-                    if (studio.Equals(key, StringComparison.OrdinalIgnoreCase))
-                    {
-                        matched.Add(name);
-                        break;
-                    }
-                }
-            }
-            return [.. matched];
+            return StreamingServiceAliases.GetStreamingServices(studios);
         }
 
         /// <summary>

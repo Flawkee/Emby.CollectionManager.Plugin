@@ -102,6 +102,8 @@ namespace CollectionManager.Plugin.Helpers
                 || (definition.IncludedImdbIds?.Length > 0)
                 || (definition.IncludedGenres?.Length > 0)
                 || (definition.IncludedStudios?.Length > 0)
+                || (definition.IncludedActors?.Length > 0)
+                || (definition.IncludedDirectors?.Length > 0)
                 || (definition.IncludedTags?.Length > 0)
                 || (definition.IncludedYears?.Length > 0)
                 || (definition.IncludedOfficialRatings?.Length > 0)

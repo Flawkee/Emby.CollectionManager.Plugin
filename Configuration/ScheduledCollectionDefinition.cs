@@ -29,6 +29,16 @@ namespace CollectionManager.Plugin.Configuration
         public string MdblistListPath { get; set; } = string.Empty;
 
         /// <summary>
+        /// Optional actor/person names to match against Emby people metadata.
+        /// </summary>
+        public string[] IncludedActors { get; set; } = System.Array.Empty<string>();
+
+        /// <summary>
+        /// Optional director/person names to match against Emby people metadata.
+        /// </summary>
+        public string[] IncludedDirectors { get; set; } = System.Array.Empty<string>();
+
+        /// <summary>
         /// Optional title keywords. Each value is matched against the Emby item name using a case-insensitive contains check.
         /// </summary>
         public string[] IncludedTitleKeywords { get; set; } = System.Array.Empty<string>();

@@ -91,13 +91,13 @@ namespace CollectionManager.Plugin.Helpers
             var existing = FindCollection(def.Name);
             if (existing != null && !IsManagedCollection(existing))
             {
-                if (!ScheduledCollectionSimpleOneClickPresets.IsKnownPresetName(def.Name))
+                if (!CanTakeOwnershipOfExistingCollection(def))
                 {
                     _logger.Warn($"[CollectionManager/ScheduledCollections] Skipping '{def.Name}' because an existing collection with that name is not marked as managed by Collection Manager.");
                     return 0;
                 }
 
-                _logger.Info($"[CollectionManager/ScheduledCollections] Taking ownership of existing one-click collection '{def.Name}'");
+                _logger.Info($"[CollectionManager/ScheduledCollections] Taking ownership of existing collection '{def.Name}'");
             }
 
             var items = GetMatchingItems(def).ToArray();
@@ -165,12 +165,25 @@ namespace CollectionManager.Plugin.Helpers
                 }
             }
 
+            foreach (var item in GetMatchingPeopleItems(def, PersonType.Actor, def.IncludedActors))
+            {
+                if (seen.Add(item.InternalId))
+                    results.Add(item);
+            }
+
+            foreach (var item in GetMatchingPeopleItems(def, PersonType.Director, def.IncludedDirectors))
+            {
+                if (seen.Add(item.InternalId))
+                    results.Add(item);
+            }
+
             return ApplyPostProcessing(
                 def,
                 results,
                 mdblistApiKeyOverride,
                 applyTitleKeywordFilter: ScheduledCollectionRuntimeFilter.ShouldApplyTitleKeywordAsGlobalPostFilter(def.MatchMode),
-                applyExternalImdbFilter: ScheduledCollectionRuntimeFilter.ShouldApplyExternalIdsAsGlobalPostFilter(def.MatchMode));
+                applyExternalImdbFilter: ScheduledCollectionRuntimeFilter.ShouldApplyExternalIdsAsGlobalPostFilter(def.MatchMode),
+                applyPeopleFilter: ScheduledCollectionPersonFilters.ShouldApplyPeopleAsGlobalPostFilter(def.MatchMode));
         }
 
         private bool RequiresPostProcessing(ScheduledCollectionDefinition def)
@@ -179,7 +192,8 @@ namespace CollectionManager.Plugin.Helpers
                 || ScheduledCollectionSortOptions.IsDateCreatedDescending(def.SortBy)
                 || ScheduledCollectionSortOptions.IsCommunityRatingDescending(def.SortBy)
                 || HasTitleKeywordFilter(def)
-                || HasExternalImdbFilter(def);
+                || HasExternalImdbFilter(def)
+                || ScheduledCollectionPersonFilters.HasPersonFilters(def);
         }
 
         private bool HasExternalImdbFilter(ScheduledCollectionDefinition def)
@@ -200,9 +214,14 @@ namespace CollectionManager.Plugin.Helpers
                 || def.IsFavorite == "No";
         }
 
-        private IEnumerable<BaseItem> ApplyPostProcessing(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride, bool applyTitleKeywordFilter = true, bool applyExternalImdbFilter = true)
+        private static bool CanTakeOwnershipOfExistingCollection(ScheduledCollectionDefinition def)
         {
-            var filtered = ApplyPostFilters(def, items, mdblistApiKeyOverride, applyTitleKeywordFilter, applyExternalImdbFilter);
+            return ScheduledCollectionSimpleOneClickPresets.IsKnownPresetName(def.Name);
+        }
+
+        private IEnumerable<BaseItem> ApplyPostProcessing(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride, bool applyTitleKeywordFilter = true, bool applyExternalImdbFilter = true, bool applyPeopleFilter = true)
+        {
+            var filtered = ApplyPostFilters(def, items, mdblistApiKeyOverride, applyTitleKeywordFilter, applyExternalImdbFilter, applyPeopleFilter);
             if (ScheduledCollectionSortOptions.IsDateCreatedDescending(def.SortBy))
                 filtered = filtered.OrderByDescending(i => ReadNullableDateTime(i, "DateCreated") ?? DateTime.MinValue);
             else if (ScheduledCollectionSortOptions.IsCommunityRatingDescending(def.SortBy))
@@ -211,7 +230,7 @@ namespace CollectionManager.Plugin.Helpers
             return def.MaxItems > 0 ? filtered.Take(def.MaxItems) : filtered;
         }
 
-        private IEnumerable<BaseItem> ApplyPostFilters(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride, bool applyTitleKeywordFilter, bool applyExternalImdbFilter)
+        private IEnumerable<BaseItem> ApplyPostFilters(ScheduledCollectionDefinition def, IEnumerable<BaseItem> items, string? mdblistApiKeyOverride, bool applyTitleKeywordFilter, bool applyExternalImdbFilter, bool applyPeopleFilter)
         {
             var imdbIds = applyExternalImdbFilter ? ResolveExternalImdbIds(def, mdblistApiKeyOverride) : null;
             foreach (var item in items)
@@ -221,6 +240,8 @@ namespace CollectionManager.Plugin.Helpers
                 if (applyTitleKeywordFilter && HasTitleKeywordFilter(def) && !MatchesTitleKeyword(item, def.IncludedTitleKeywords))
                     continue;
                 if (applyExternalImdbFilter && imdbIds != null && !MatchesImdbId(item, imdbIds))
+                    continue;
+                if (applyPeopleFilter && ScheduledCollectionPersonFilters.HasPersonFilters(def) && !MatchesPersonFilters(item, def))
                     continue;
                 yield return item;
             }
@@ -319,6 +340,34 @@ namespace CollectionManager.Plugin.Helpers
             return false;
         }
 
+        private IEnumerable<BaseItem> GetMatchingPeopleItems(ScheduledCollectionDefinition def, PersonType personType, string[]? names)
+        {
+            var normalizedNames = ScheduledCollectionPersonFilters.NormalizeNames(names);
+            if (normalizedNames.Length == 0) return Enumerable.Empty<BaseItem>();
+
+            return _libraryManager.GetItemList(BuildQuery(def, includeFilters: false, includeLimit: false))
+                .Where(item => MatchesPersonGroup(item, personType, normalizedNames));
+        }
+
+        private bool MatchesPersonFilters(BaseItem item, ScheduledCollectionDefinition def)
+        {
+            var actors = ScheduledCollectionPersonFilters.NormalizeNames(def.IncludedActors);
+            if (actors.Length > 0 && !MatchesPersonGroup(item, PersonType.Actor, actors))
+                return false;
+
+            var directors = ScheduledCollectionPersonFilters.NormalizeNames(def.IncludedDirectors);
+            if (directors.Length > 0 && !MatchesPersonGroup(item, PersonType.Director, directors))
+                return false;
+
+            return true;
+        }
+
+        private bool MatchesPersonGroup(BaseItem item, PersonType personType, string[] names)
+        {
+            var people = _libraryManager.GetItemPeople(item);
+            return people.Any(p => p.Type == personType && names.Contains(p.Name ?? string.Empty, StringComparer.OrdinalIgnoreCase));
+        }
+
         private IEnumerable<InternalItemsQuery> BuildAnyFilterQueries(ScheduledCollectionDefinition def)
         {
             if (def.IncludedGenres?.Length > 0)
@@ -393,6 +442,7 @@ namespace CollectionManager.Plugin.Helpers
                 || (def.IncludedTags?.Length > 0)
                 || (def.IncludedYears?.Length > 0)
                 || HasTitleKeywordFilter(def)
+                || ScheduledCollectionPersonFilters.HasPersonFilters(def)
                 || def.PlayState == "Played"
                 || def.PlayState == "Unplayed"
                 || def.IsFavorite == "Yes"

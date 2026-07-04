@@ -344,6 +344,19 @@
                                 </div>
                             </details>
                         </div>
+                        <div class="cmPresetSection" style="border-top:1px solid rgba(127,127,127,.32);margin-top:1em;padding-top:1em;">
+                            <h4 class="cmPresetSectionTitle">Create by actor or director</h4>
+                            <div class="fieldDescription" style="margin-bottom:.65em;">
+                                Build a collection from movies or shows where Emby metadata lists a specific actor or director. Use the exact name Emby shows on the item page.
+                            </div>
+                            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:.75em;align-items:end;">
+                                <label>Collection name (optional)<br /><input type="text" id="txtPersonCollectionName" placeholder="Tom Hanks Collection" /></label>
+                                <label>Person type<br /><select id="selPersonCollectionType"><option value="actor">Actor</option><option value="director">Director</option></select></label>
+                                <label>Actor/director name<br /><input type="text" id="txtPersonCollectionValue" list="cmPersonCollectionValues" placeholder="Tom Hanks" /><datalist id="cmPersonCollectionValues"></datalist></label>
+                                <button type="button" id="btnCreatePersonCollection" class="cmButton cmButtonPrimary">Preview &amp; create</button>
+                            </div>
+                            <div id="divPersonCollectionStatus" class="fieldDescription" style="margin-top:.75em;"></div>
+                        </div>
                         <div id="divFeaturedScheduledStatus" class="fieldDescription" style="margin-top:.75em;"></div>
                     </div>
                     <div style="display:none;" aria-hidden="true">

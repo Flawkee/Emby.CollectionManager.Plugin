@@ -70,6 +70,17 @@ public sealed class AdminSimpleCollectionsUiTests
     }
 
     [Fact]
+    public void SimpleCollections_OneClickCreateStatusUsesPreviewCountWhenRunResponseReportsZero()
+    {
+        var script = ReadRepoFile("Configuration/adminconfigpage.js");
+
+        Assert.Contains("runRequest.PreviewCount = preview.Count || 0", script, StringComparison.Ordinal);
+        Assert.Contains("preview.Count > 0", script, StringComparison.Ordinal);
+        Assert.Contains("(run.Count || 0) <= 0", script, StringComparison.Ordinal);
+        Assert.Contains("Created ' + def.Name + ' with ' + preview.Count + ' item(s).", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void AdminPageStylesInheritHostThemeColors()
     {
         var html = ReadRepoFile("Configuration/adminconfigpage.html");
@@ -99,6 +110,25 @@ public sealed class AdminSimpleCollectionsUiTests
         Assert.Contains("rgba(127, 127, 127, .20)", script, StringComparison.Ordinal);
         Assert.Contains("display: flex", script, StringComparison.Ordinal);
         Assert.Contains("flex-direction: column", script, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CustomCollectionEditor_ExposesActorAndDirectorTokenFields()
+    {
+        var script = ReadRepoFile("Configuration/adminconfigpage.js");
+        var html = ReadRepoFile("Configuration/adminconfigpage.html");
+
+        Assert.Contains("_metadata = { Libraries: [], Genres: [], Studios: [], Tags: [], Years: [], Ratings: [], Actors: [], Directors: []", script, StringComparison.Ordinal);
+        Assert.Contains("tokenField('Actors', 'Actors'", script, StringComparison.Ordinal);
+        Assert.Contains("tokenField('Directors', 'Directors'", script, StringComparison.Ordinal);
+        Assert.Contains("IncludedActors: tokenValues(card, 'Actors')", script, StringComparison.Ordinal);
+        Assert.Contains("IncludedDirectors: tokenValues(card, 'Directors')", script, StringComparison.Ordinal);
+        Assert.Contains("Actor: ", script, StringComparison.Ordinal);
+        Assert.Contains("Director: ", script, StringComparison.Ordinal);
+        Assert.Contains("txtPersonCollectionName", html, StringComparison.Ordinal);
+        Assert.Contains("selPersonCollectionType", html, StringComparison.Ordinal);
+        Assert.Contains("txtPersonCollectionValue", html, StringComparison.Ordinal);
+        Assert.Contains("btnCreatePersonCollection", html, StringComparison.Ordinal);
     }
 
     [Fact]

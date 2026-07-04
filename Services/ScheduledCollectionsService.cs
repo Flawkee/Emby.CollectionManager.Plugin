@@ -3,6 +3,7 @@ using CollectionManager.Plugin.Helpers;
 using CollectionManager.Plugin.ScheduledTasks;
 using MediaBrowser.Controller.Entities;
 using MediaBrowser.Controller.Library;
+using MediaBrowser.Model.Entities;
 using MediaBrowser.Model.Logging;
 using MediaBrowser.Model.Querying;
 using MediaBrowser.Model.Services;
@@ -30,6 +31,7 @@ namespace CollectionManager.Plugin.Services
     [Route("/CollectionManager/ScheduledCollections/Run", "POST", Summary = "Build one scheduled/custom collection now")]
     public class RunScheduledCollection : ScheduledCollectionDefinition, IReturn<ScheduledCollectionRunResponse>
     {
+        public int PreviewCount { get; set; }
     }
 
     [Route("/CollectionManager/ScheduledCollections/RunTask", "POST", Summary = "Run the full Collection Manager task now")]
@@ -52,6 +54,8 @@ namespace CollectionManager.Plugin.Services
         public List<string> Tags { get; set; } = new List<string>();
         public List<string> Years { get; set; } = new List<string>();
         public List<string> Ratings { get; set; } = new List<string>();
+        public List<string> Actors { get; set; } = new List<string>();
+        public List<string> Directors { get; set; } = new List<string>();
         public int ImdbProviderIdCount { get; set; }
         public bool HasImdbProviderIds { get; set; }
     }
@@ -113,6 +117,8 @@ namespace CollectionManager.Plugin.Services
             response.Libraries = GetVirtualFolderOptions();
             response.Genres = GetNamedItems("Genre");
             response.Studios = GetNamedItems("Studio");
+            response.Actors = GetPeopleNames(PersonType.Actor);
+            response.Directors = GetPeopleNames(PersonType.Director);
 
             var items = _libraryManager.GetItemList(new InternalItemsQuery
             {
@@ -172,14 +178,41 @@ namespace CollectionManager.Plugin.Services
 
             try
             {
-                var count = await helper.BuildScheduledCollectionAsync(request, DateTimeOffset.Now, CancellationToken.None).ConfigureAwait(false);
-                return new ScheduledCollectionRunResponse { Success = true, Count = count, Message = $"Built '{request.Name}' with {count} item(s)." };
+                var now = DateTimeOffset.Now;
+                var count = await helper.BuildScheduledCollectionAsync(request, now, CancellationToken.None).ConfigureAwait(false);
+                var displayCount = count;
+                var verb = "Built";
+                if (displayCount <= 0
+                    && request.PreviewCount > 0
+                    && ScheduledCollectionEvaluator.IsActive(ScheduledCollectionSimpleOneClickPresets.Normalize(request), now))
+                {
+                    var existingCollectionCount = GetManagedCollectionChildCount(request.Name);
+                    if (existingCollectionCount > 0)
+                    {
+                        displayCount = existingCollectionCount;
+                        verb = "Created";
+                    }
+                }
+                return new ScheduledCollectionRunResponse { Success = true, Count = displayCount, Message = $"{verb} '{request.Name}' with {displayCount} item(s)." };
             }
             catch (Exception ex)
             {
                 _logger.Error($"[CollectionManager/ScheduledCollections] Run-now failed for '{request.Name}': {ex.Message}");
                 return new ScheduledCollectionRunResponse { Success = false, Message = ex.Message };
             }
+        }
+
+        private int GetManagedCollectionChildCount(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return 0;
+            var collection = _libraryManager.GetItemList(new InternalItemsQuery
+            {
+                IncludeItemTypes = new[] { "BoxSet" },
+                Name = name,
+                Recursive = true
+            }).OfType<BoxSet>().FirstOrDefault();
+            if (collection == null || !ScheduledCollectionManagedMarker.IsManaged(collection.Overview)) return 0;
+            return collection?.GetRecursiveChildren().Length ?? 0;
         }
 
         public object Post(RunScheduledCollectionsTask request)
@@ -288,6 +321,20 @@ namespace CollectionManager.Plugin.Services
                 Recursive = true
             })
             .Select(i => i.Name)
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .OrderBy(s => s)
+            .ToList()!;
+        }
+
+        private List<string> GetPeopleNames(PersonType personType)
+        {
+            return _libraryManager.GetItemPeople(new InternalPeopleQuery
+            {
+                PersonTypes = new[] { personType },
+                EnableGroupByName = true
+            })
+            .Select(p => p.Name)
             .Where(s => !string.IsNullOrWhiteSpace(s))
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .OrderBy(s => s)

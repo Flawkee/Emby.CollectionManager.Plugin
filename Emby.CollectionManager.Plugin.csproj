@@ -7,7 +7,7 @@
     <RootNamespace>CollectionManager.Plugin</RootNamespace>
     <Nullable>enable</Nullable>
     <ProduceReferenceAssembly>False</ProduceReferenceAssembly>
-    <Version>1.0.0.27</Version>
+    <Version>1.0.0.30</Version>
     <Authors>Collection Manager</Authors>
     <GeneratedAssemblyInfoFile>assemblyinfo.cs</GeneratedAssemblyInfoFile>
   </PropertyGroup>
@@ -43,7 +43,7 @@
     <EmbeddedResource Include="Configuration\adminconfigpage.js" />
   </ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(OS)' == 'Windows_NT'">
     <Exec Command="copy $(TargetPath) %AppData%\Emby-Server\programdata\plugins\" />
   </Target>
 
