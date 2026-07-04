@@ -35,13 +35,16 @@ From the same page each user can also opt out of receiving the binge (Franchise 
 
 ## Installation
 
+Recommended: install through the Emby Plugin Catalog when available.
 
-Recommended: Install through Emby Plugin Catalog OR
+Manual installation is also supported:
 
-1. Build the project (see below) or download the latest `Emby.CollectionManager.Plugin.dll`.
-2. Drop the DLL into `<Emby programdata>/plugins/`.
+1. Build the project (see below) or download a release `Emby.CollectionManager.Plugin.dll`.
+2. Copy the DLL into your Emby Server `plugins` folder.
 3. Restart Emby Server.
 4. Open _Dashboard → Plugins → Collection Manager_ and configure.
+
+See [Manual install and testing](docs/INSTALL.md) for Windows, Linux, macOS, Docker/container, and troubleshooting notes.
 
 ## How It Works
 
@@ -80,13 +83,14 @@ Saving triggers an immediate task run.
 
 ## Build
 
-Requires .NET SDK and the [Emby plugin SDK NuGet packages](https://www.nuget.org/packages/MediaBrowser.Server.Core/).
+Requires the [.NET SDK](https://dotnet.microsoft.com/download) and the [Emby plugin SDK NuGet packages](https://www.nuget.org/packages/MediaBrowser.Server.Core/).
 
-```powershell
-dotnet build
+```bash
+dotnet restore Emby.CollectionManager.Plugin.csproj
+dotnet build Emby.CollectionManager.Plugin.csproj --configuration Release /p:SkipLocalPluginCopy=true
 ```
 
-The post-build step copies the DLL to `%AppData%\Emby-Server\programdata\plugins\` for local testing.
+The output DLL is written under `bin/Release/netstandard2.0/`. On Windows local-development builds, omit `/p:SkipLocalPluginCopy=true` if you want the post-build step to copy the DLL to `%AppData%\Emby-Server\programdata\plugins\`. On macOS, Linux, and CI, the local Windows copy step is skipped.
 
 ## Project Layout
 

@@ -1,0 +1,84 @@
+name: Bug report
+description: Report a problem with Collection Manager
+title: "Bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for reporting a bug. Please include enough detail for someone else to reproduce it on a normal Emby install.
+  - type: input
+    id: emby-version
+    attributes:
+      label: Emby Server version
+      placeholder: "Example: 4.8.11.0"
+    validations:
+      required: true
+  - type: input
+    id: plugin-version
+    attributes:
+      label: Collection Manager plugin version
+      placeholder: "Example: 1.0.0"
+    validations:
+      required: false
+  - type: dropdown
+    id: install-type
+    attributes:
+      label: Installation type
+      options:
+        - Emby Plugin Catalog
+        - Manual DLL install
+        - Built from source
+        - Other / not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Server operating system
+      options:
+        - Windows
+        - Linux
+        - macOS
+        - Docker / container
+        - Other / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: What happened?
+      description: Describe the problem and what you expected instead.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open ...
+        2. Enable ...
+        3. Run ...
+        4. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant Emby log lines
+      description: Paste only relevant lines. Remove tokens, hostnames, domains, user names, and paths you do not want public.
+      render: text
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: I restarted Emby Server after installing or updating the plugin.
+          required: false
+        - label: I checked the Emby server log for Collection Manager messages.
+          required: false
+        - label: I removed private information from logs/screenshots before posting.
+          required: true

@@ -37,7 +37,7 @@
     <EmbeddedResource Include="Configuration\adminconfigpage.js" />
   </ItemGroup>
 
-  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent" Condition="'$(OS)' == 'Windows_NT' and '$(SkipLocalPluginCopy)' != 'true'">
     <Exec Command="copy $(TargetPath) %AppData%\Emby-Server\programdata\plugins\" />
   </Target>
 

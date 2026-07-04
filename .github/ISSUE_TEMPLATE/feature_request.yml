@@ -1,0 +1,54 @@
+name: Feature request
+description: Suggest an improvement for Collection Manager
+title: "Feature: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting an improvement. Please focus on the user problem and expected behavior.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      placeholder: "Example: It is hard to manage thousands of studios because..."
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe how you think the plugin should work.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Admin configuration
+        - Per-user Dynamic Playlists
+        - Movie franchise playlists
+        - TV universe playlists
+        - Streaming service collections
+        - Installation / build / docs
+        - Other / not sure
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Optional. Tell us what you tried or why existing behavior is not enough.
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checklist
+      options:
+        - label: This request is not specific to a private/local server layout.
+          required: true
+        - label: I removed private information from examples and screenshots.
+          required: true

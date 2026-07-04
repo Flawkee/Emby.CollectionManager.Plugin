@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build and test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+          - windows-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Set up Node.js for JavaScript syntax checks
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Restore plugin project
+        run: dotnet restore Emby.CollectionManager.Plugin.csproj --verbosity minimal
+
+      - name: Build plugin project
+        run: dotnet build Emby.CollectionManager.Plugin.csproj --configuration Release --no-restore --verbosity minimal /p:SkipLocalPluginCopy=true
+
+      - name: Run plugin tests when present
+        shell: pwsh
+        run: |
+          if (Test-Path "CollectionManager.Plugin.Tests/CollectionManager.Plugin.Tests.csproj") {
+            dotnet test CollectionManager.Plugin.Tests/CollectionManager.Plugin.Tests.csproj --configuration Release --verbosity minimal
+          } else {
+            Write-Host "No test project found; skipping dotnet test."
+          }
+
+      - name: Check embedded admin JavaScript syntax
+        shell: pwsh
+        run: |
+          $files = @(
+            "Configuration/adminconfigpage.js",
+            "Configuration/configurationpage.js"
+          )
+
+          foreach ($file in $files) {
+            if (Test-Path $file) {
+              node --check $file
+            } else {
+              Write-Host "Skipping missing JavaScript file: $file"
+            }
+          }
