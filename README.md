@@ -82,11 +82,11 @@ Saving triggers an immediate task run.
 
 Requires .NET SDK and the [Emby plugin SDK NuGet packages](https://www.nuget.org/packages/MediaBrowser.Server.Core/).
 
-```powershell
+```bash
 dotnet build
 ```
 
-The post-build step copies the DLL to `%AppData%\Emby-Server\programdata\plugins\` for local testing.
+On Windows, the post-build step copies the DLL to `%AppData%\Emby-Server\programdata\plugins\` for local testing. On macOS and Linux, the build leaves the DLL in `bin/` without running a Windows-only copy command.
 
 ## Project Layout
 
