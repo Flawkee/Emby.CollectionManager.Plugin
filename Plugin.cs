@@ -84,6 +84,13 @@ namespace CollectionManager.Plugin
 
         public ImageFormat ThumbImageFormat => ImageFormat.Png;
 
+        internal static bool ShouldShowUserPlaylistsMenu(PluginConfiguration options)
+        {
+            return options.EnableDynamicUserPlaylists
+                || options.EnableMovieSeriesPlaylists
+                || options.EnableTvUniversePlaylists;
+        }
+
         public IEnumerable<PluginPageInfo> GetPages()
         {
             // Admin configuration page (replaces the SimpleUI auto-generated page)
@@ -98,18 +105,19 @@ namespace CollectionManager.Plugin
                 EmbeddedResourcePath = GetType().Namespace + ".Configuration.adminconfigpage.js"
             };
 
-            // Per-user "Dynamic Playlists" page. Hide the user-menu entry when the admin
-            // disables per-user smart playlists server-wide, since the page's primary purpose
-            // is unavailable in that state.
+            // Per-user Collection Manager page. Keep the user-menu entry available when any
+            // user-facing feature is enabled: smart playlists need the editor, and franchise /
+            // universe playlist features need the opt-out checkboxes. Hide it only when there
+            // is nothing for users to configure.
             yield return new PluginPageInfo
             {
                 Name                 = "collectionmanager-userplaylists",
                 EmbeddedResourcePath = GetType().Namespace + ".Configuration.configurationpage.html",
-                EnableInUserMenu     = Options.EnableDynamicUserPlaylists,
+                EnableInUserMenu     = ShouldShowUserPlaylistsMenu(Options),
                 EnableInMainMenu     = false,
                 MenuSection          = "user",
                 MenuIcon             = "queue_music",
-                DisplayName          = "Dynamic Playlists"
+                DisplayName          = Options.EnableDynamicUserPlaylists ? "Dynamic Playlists" : "Collection Manager"
             };
             yield return new PluginPageInfo
             {
