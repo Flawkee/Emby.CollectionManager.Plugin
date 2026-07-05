@@ -127,7 +127,8 @@ namespace CollectionManager.Plugin.Helpers
 
                 var ordered = all
                     .OrderBy(m => m.ProductionYear ?? 0)
-                    .ThenBy(m => m.PremiereDate ?? DateTime.MinValue)
+                    .ThenBy(m => m.PremiereDate.HasValue ? 1 : 0)
+                    .ThenBy(m => m.PremiereDate)
                     .ToArray();
 
                 var playlistName = prefix + " Franchise";
@@ -177,7 +178,8 @@ namespace CollectionManager.Plugin.Helpers
             // Sort by premiere date so the oldest show in a franchise gets processed first
             // (and therefore defines the universe name)
             var sorted = allSeries
-                .OrderBy(s => s.PremiereDate ?? DateTime.MaxValue)
+                .OrderBy(s => s.PremiereDate.HasValue ? 0 : 1)
+                .ThenBy(s => s.PremiereDate)
                 .ThenBy(s => s.Name)
                 .ToArray();
 
@@ -217,7 +219,8 @@ namespace CollectionManager.Plugin.Helpers
                 var ordered = members
                     .Where(id => idToItem.ContainsKey(id))
                     .Select(id => idToItem[id])
-                    .OrderBy(s => s.PremiereDate ?? DateTime.MinValue)
+                    .OrderBy(s => s.PremiereDate.HasValue ? 1 : 0)
+                    .ThenBy(s => s.PremiereDate)
                     .ThenBy(s => s.Name)
                     .Select(s => s.InternalId)
                     .ToArray();
@@ -456,7 +459,8 @@ namespace CollectionManager.Plugin.Helpers
 
                 var ordered = kvp.Value.items
                     .OrderBy(m => m.ProductionYear ?? 0)
-                    .ThenBy(m => m.PremiereDate ?? DateTime.MinValue)
+                    .ThenBy(m => m.PremiereDate.HasValue ? 1 : 0)
+                    .ThenBy(m => m.PremiereDate)
                     .ToArray();
 
                 var playlistName = StripCollectionSuffix(kvp.Value.name) + " Franchise";
